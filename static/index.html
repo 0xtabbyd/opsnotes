@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="monokai-ristretto">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpsNotes - ホームラボ運用ノート & コマンドスニペット</title>
+  <meta name="description" content="ホームラボ運用・コマンド・Markdownメモ・スニペットを一括管理する堅牢なローカルダッシュボード">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="/static/css/theme.css?v=1.2.0">
+  <link rel="stylesheet" href="/static/css/style.css?v=1.4.5">
+  <!-- Markdown & Highlight Libraries (CDN with fallback) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+  <!-- Dynamic Custom Theme Stylesheet -->
+  <link id="customThemeStylesheet" rel="stylesheet" href="">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-icon">ON</div>
+        <span class="brand-title">OpsNotes</span>
+        <span class="brand-badge">Local Lab</span>
+      </div>
+
+      <!-- Quick Search Trigger (Ctrl+K) -->
+      <div class="header-search">
+        <div class="search-trigger" id="searchTriggerBtn" title="コマンドやメモを高速検索 (Ctrl + K)">
+          <div class="search-trigger-content">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <span class="search-placeholder">コマンドやメモを検索...</span>
+          </div>
+          <kbd class="search-shortcut">Ctrl + K</kbd>
+        </div>
+      </div>
+
+      <!-- Header Actions -->
+      <div class="header-actions">
+        <!-- Theme Switcher -->
+        <div class="theme-select-wrapper" title="カラーテーマ切り替え">
+          <i class="fa-solid fa-palette theme-select-icon"></i>
+          <select id="themeSelector" class="theme-select" title="テーマ切り替え">
+            <optgroup label="Dark Themes">
+              <option value="monokai-ristretto">Monokai Pro Ristretto</option>
+              <option value="catppuccin-mocha">Catppuccin Mocha</option>
+              <option value="ayu-dark">Ayu Dark</option>
+              <option value="ayu-mirage">Ayu Mirage</option>
+              <option value="vscode-dark">VS Code Dark+</option>
+            </optgroup>
+            <optgroup label="Light Themes">
+              <option value="catppuccin-latte">Catppuccin Latte</option>
+              <option value="ayu-light">Ayu Light</option>
+              <option value="vscode-light">VS Code Light+</option>
+            </optgroup>
+            <optgroup label="Custom Themes" id="customThemesGroup">
+              <!-- Dynamically populated from styles/ directory -->
+            </optgroup>
+          </select>
+        </div>
+
+        <button class="btn btn-secondary btn-sm header-action-btn" id="btnManageVariables" title="グローバル変数・パラメータ設定">
+          <i class="fa-solid fa-sliders header-btn-icon"></i>
+          <span class="header-btn-text">変数設定</span>
+        </button>
+        <button class="btn btn-secondary btn-sm header-action-btn" id="btnManageBackup" title="データバックアップ・復元">
+          <i class="fa-solid fa-floppy-disk header-btn-icon"></i>
+          <span class="header-btn-text">データ保全</span>
+        </button>
+        <button class="btn btn-primary header-action-btn btn-new-snippet" id="btnNewSnippet" title="新規スニペット作成">
+          <i class="fa-solid fa-bolt header-btn-icon"></i>
+          <span class="header-btn-text">スニペット</span>
+        </button>
+        <button class="btn btn-primary header-action-btn btn-new-note" id="btnNewNote" title="新規メモ作成">
+          <i class="fa-solid fa-file-lines header-btn-icon"></i>
+          <span class="header-btn-text">メモ作成</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- App Body -->
+    <div class="app-body">
+      <!-- Sidebar -->
+      <aside class="app-sidebar">
+        <!-- Main Navigation -->
+        <div class="sidebar-section">
+          <div class="sidebar-title" style="display:flex; align-items:center; justify-content:space-between;">
+            <span>ビュー切り替え</span>
+            <button type="button" class="btn btn-icon btn-sm" id="btnToggleSidebar" title="サイドバーを閉じる">
+              <i class="fa-solid fa-angles-left"></i>
+            </button>
+          </div>
+          <div class="sidebar-nav-item active" id="navSnippets" data-view="snippets">
+            <div class="nav-label-group">
+              <i class="fa-solid fa-code"></i>
+              <span>コマンドスニペット</span>
+            </div>
+            <span class="item-count" id="countSnippets">0</span>
+          </div>
+          <div class="sidebar-nav-item" id="navNotes" data-view="notes">
+            <div class="nav-label-group">
+              <i class="fa-solid fa-book-open"></i>
+              <span>Markdown メモ</span>
+            </div>
+            <span class="item-count" id="countNotes">0</span>
+          </div>
+          <div class="sidebar-nav-item" id="navFavorites" data-filter="favorites">
+            <div class="nav-label-group">
+              <i class="fa-solid fa-star"></i>
+              <span>お気に入り</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Categories -->
+        <div class="sidebar-section">
+          <div class="sidebar-title">カテゴリ</div>
+          <div id="sidebarCategories" class="sidebar-nav-list">
+            <div class="sidebar-nav-item active" data-category="all">
+              <span>すべて</span>
+            </div>
+            <!-- Dynamic Category List -->
+          </div>
+        </div>
+
+        <!-- Tags -->
+        <div class="sidebar-section">
+          <div class="sidebar-title">タグクラウド</div>
+          <div class="tag-cloud" id="sidebarTags">
+            <!-- Dynamic Tags -->
+          </div>
+        </div>
+
+        <!-- Related Notes Auto Suggestion Section (TF-IDF) -->
+        <div class="sidebar-section related-notes-sidebar-section" id="relatedNotesSection" style="margin-top:auto; padding-top:12px; border-top:1px solid var(--border-subtle); display:none; flex-direction:column; max-height:260px;">
+          <div class="sidebar-title" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+            <span><i class="fa-solid fa-link" style="color:var(--accent-primary); margin-right:4px;"></i>関連メモ (自動連携)</span>
+            <span class="related-badge-hint" title="現在開いているメモと文脈・キーワードが近いメモを自動抽出">AI/TF-IDF</span>
+          </div>
+          <div class="related-notes-list" id="relatedNotesList" style="flex:1; overflow-y:auto; gap:6px; display:flex; flex-direction:column;">
+            <div class="related-empty-hint">メモを選択すると関連するノートが自動で繋がります</div>
+          </div>
+        </div>
+      </aside>
+      <div class="pane-resizer pane-resizer-sidebar" id="sidebarResizer" title="ドラッグしてサイドバー幅を変更"></div>
+
+      <!-- Main Content Container -->
+      <main class="app-content">
+        <!-- 1. Snippets View -->
+        <div id="snippetsView" style="display:flex; flex-direction:column; flex:1; overflow-y:auto; height:100%; min-height:0;">
+          <div class="view-header">
+            <div class="view-title-group">
+              <h2 id="currentCategoryTitle"><i class="fa-solid fa-code"></i> コマンドスニペット</h2>
+              <p>ホームラボ構築・検証でよく使うコマンド一覧とインタラクティブパラメータ置換</p>
+            </div>
+            <div class="view-filters">
+              <select id="snippetSortSelect" class="filter-select">
+                <option value="pinned_updated">ピン留め・更新順</option>
+                <option value="copies">コピー回数順</option>
+                <option value="recent">作成が新しい順</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Snippet Cards Grid -->
+          <div class="snippets-container" id="snippetsList">
+            <!-- Snippet Cards will be rendered here dynamically -->
+          </div>
+
+          <!-- Favorites Only: Notes Section -->
+          <div id="favoritesNotesSection" style="display:none; padding: 0 24px 32px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; border-top:1px solid var(--border-subtle); padding-top:20px;">
+              <div style="font-size:1.1rem; font-weight:700; display:flex; align-items:center; gap:8px;">
+                <i class="fa-solid fa-book-open"></i>
+                <span>お気に入りメモ</span>
+                <span class="badge-cat" id="favNotesCountBadge">0</span>
+              </div>
+            </div>
+            <div id="favoritesNotesGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:14px;">
+              <!-- Favorite Notes Cards -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Notes View (Markdown Split View) -->
+        <div id="notesView" class="notes-view-container" style="display:none;">
+          <!-- Notes List Pane -->
+          <div class="notes-list-pane">
+            <div class="notes-list-header">
+              <span style="font-weight:600; font-size:0.9rem;">メモ一覧</span>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btnOpenTemplateModal" title="テンプレートからメモを作成">
+                  <i class="fa-solid fa-shapes"></i> 雛形
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnCreateNoteInline" title="新規メモ作成">
+                  <i class="fa-solid fa-plus"></i> 新規
+                </button>
+                <button type="button" class="btn btn-icon btn-sm" id="btnToggleNotesList" title="メモ一覧を閉じる">
+                  <i class="fa-solid fa-angles-left"></i>
+                </button>
+              </div>
+            </div>
+            <!-- Main Notes Items List -->
+            <div id="notesItemList" style="flex:1; overflow-y:auto;">
+              <!-- Notes Items rendered here -->
+            </div>
+          </div>
+          <div class="pane-resizer pane-resizer-notes" id="notesListResizer" title="ドラッグしてメモ一覧幅を変更"></div>
+
+          <!-- Notes Editor Pane -->
+          <div class="note-editor-pane" id="noteEditorPane">
+            <div class="note-editor-header">
+              <!-- Row 1: Title & Actions -->
+              <div class="note-header-top-row">
+                <div class="note-header-left">
+                  <button type="button" class="btn btn-icon btn-sm btn-reopen-notes-list" id="btnReopenNotesList" title="メモ一覧を展開" style="display:none; flex-shrink:0;">
+                    <i class="fa-solid fa-angles-right"></i>
+                  </button>
+                  <input type="text" id="noteTitleInput" class="note-title-input" placeholder="メモのタイトルを入力...">
+                </div>
+                <div class="note-header-right">
+                  <div class="note-header-actions">
+                    <!-- Postmortem Convert Action -->
+                    <button type="button" class="btn btn-secondary btn-sm note-action-btn btn-postmortem-convert" id="btnConvertToPostmortem" title="このメモを元にポストモーテム（障害事後検証報告書）を作成・展開">
+                      <i class="fa-solid fa-shield-halved" style="color:var(--accent-warning);"></i>
+                      <span class="note-btn-label">ポストモーテム化</span>
+                    </button>
+
+                    <button type="button" class="btn btn-icon" id="btnNoteFavorite" title="お気に入りに追加/解除"><i class="fa-regular fa-star" id="noteFavIcon"></i></button>
+                    <button type="button" class="btn btn-icon" id="btnNotePin" title="上部にピン留め/解除"><i class="fa-solid fa-thumbtack" id="notePinIcon" style="opacity:0.4;"></i></button>
+                    <button type="button" class="btn btn-secondary btn-sm note-action-btn" id="btnOpenCanvasFromNote" title="構成図・配置図を作成してメモに挿入">
+                      <i class="fa-solid fa-diagram-project"></i>
+                      <span class="note-btn-label">作図・挿入</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm note-action-btn" id="btnInsertSnippetIntoNote" title="スニペットをメモに挿入">
+                      <i class="fa-solid fa-bolt"></i>
+                      <span class="note-btn-label">スニペット挿入</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm note-action-btn" id="btnToggleMaximizePreview" title="プレビューを最大化 (Escで戻る)">
+                      <i class="fa-solid fa-up-right-and-down-left-from-center" id="iconMaximizePreview"></i>
+                      <span class="note-btn-label" id="textMaximizePreview">プレビュー最大化</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm note-action-btn" id="btnPrintNoteHeaderPdf" title="マークダウンプレビューをPDF出力 / 印刷">
+                      <i class="fa-solid fa-file-pdf" style="color:var(--accent-primary);"></i>
+                      <span class="note-btn-label">PDF出力</span>
+                    </button>
+                    <button type="button" class="btn btn-icon" id="btnDeleteCurrentNote" title="メモを削除">
+                      <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                  </div>
+                  <div class="save-status-indicator" title="自動保存ステータス">
+                    <div class="save-status-dot" id="saveStatusDot"></div>
+                    <span id="saveStatusText" class="save-status-text">保存済み</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Row 2: Category & Tags Meta -->
+              <div class="note-header-meta-row">
+                <div class="note-meta-field">
+                  <i class="fa-solid fa-folder"></i>
+                  <input type="text" id="noteCategoryInput" class="form-control form-control-sm note-meta-input" placeholder="カテゴリ">
+                </div>
+                <div class="note-meta-field">
+                  <i class="fa-solid fa-tag"></i>
+                  <input type="text" id="noteTagsInput" class="form-control form-control-sm note-meta-input note-tags-input" placeholder="タグ (カンマ区切り)">
+                </div>
+              </div>
+            </div>
+
+            <!-- Rich Editor Format Toolbar -->
+            <div class="editor-toolbar" id="editorToolbar">
+              <div class="toolbar-group">
+                <button type="button" class="tb-btn" data-action="h1" title="見出し 1 (# )">H1</button>
+                <button type="button" class="tb-btn" data-action="h2" title="見出し 2 (## )">H2</button>
+                <button type="button" class="tb-btn" data-action="h3" title="見出し 3 (### )">H3</button>
+              </div>
+              <div class="toolbar-sep"></div>
+              <div class="toolbar-group">
+                <button type="button" class="tb-btn" data-action="bold" title="太字 (**テキスト**) - Ctrl+B"><i class="fa-solid fa-bold"></i></button>
+                <button type="button" class="tb-btn" data-action="italic" title="斜体 (*テキスト*) - Ctrl+I"><i class="fa-solid fa-italic"></i></button>
+                <button type="button" class="tb-btn" data-action="strike" title="打ち消し線 (~~テキスト~~)"><i class="fa-solid fa-strikethrough"></i></button>
+                <button type="button" class="tb-btn font-mono" data-action="code" title="インラインコード (`コード`)">`c`</button>
+              </div>
+              <div class="toolbar-sep"></div>
+              <!-- Text Color & Marker Highlights -->
+              <div class="toolbar-group" style="position:relative;">
+                <div class="tb-color-dropdown-wrapper">
+                  <button type="button" class="tb-btn" id="btnTextColorPicker" title="文字色を変更">
+                    <i class="fa-solid fa-font"></i>
+                    <span class="color-chip-indicator" id="textColorIndicator" style="background:#ef4444;"></span>
+                  </button>
+                  <div class="tb-color-popover" id="popoverTextColor" style="display:none;">
+                    <div class="color-palette-title">文字色</div>
+                    <div class="color-palette-grid">
+                      <button type="button" class="palette-swatch-sm" data-color="#ef4444" style="background:#ef4444;" title="赤"></button>
+                      <button type="button" class="palette-swatch-sm" data-color="#f97316" style="background:#f97316;" title="橙"></button>
+                      <button type="button" class="palette-swatch-sm" data-color="#eab308" style="background:#eab308;" title="黄"></button>
+                      <button type="button" class="palette-swatch-sm" data-color="#22c55e" style="background:#22c55e;" title="緑"></button>
+                      <button type="button" class="palette-swatch-sm" data-color="#06b6d4" style="background:#06b6d4;" title="シアン"></button>
+                      <button type="button" class="palette-swatch-sm" data-color="#3b82f6" style="background:#3b82f6;" title="青"></button>
+                      <button type="button" class="palette-swatch-sm" data-color="#a855f7" style="background:#a855f7;" title="紫"></button>
+                      <button type="button" class="palette-swatch-sm" data-color="#ec4899" style="background:#ec4899;" title="ピンク"></button>
+                      <button type="button" class="palette-swatch-sm" data-color="#94a3b8" style="background:#94a3b8;" title="グレー"></button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="tb-color-dropdown-wrapper">
+                  <button type="button" class="tb-btn" id="btnMarkerPicker" title="蛍光ペン・マーカー">
+                    <i class="fa-solid fa-highlighter"></i>
+                    <span class="color-chip-indicator" id="markerColorIndicator" style="background:#fef08a;"></span>
+                  </button>
+                  <div class="tb-color-popover" id="popoverMarkerColor" style="display:none;">
+                    <div class="color-palette-title">マーカー色</div>
+                    <div class="color-palette-grid">
+                      <button type="button" class="palette-swatch-sm" data-bg="#fef08a" data-fg="#1e293b" style="background:#fef08a;" title="イエロー"></button>
+                      <button type="button" class="palette-swatch-sm" data-bg="#bbf7d0" data-fg="#1e293b" style="background:#bbf7d0;" title="グリーン"></button>
+                      <button type="button" class="palette-swatch-sm" data-bg="#bae6fd" data-fg="#1e293b" style="background:#bae6fd;" title="ブルー"></button>
+                      <button type="button" class="palette-swatch-sm" data-bg="#fbcfe8" data-fg="#1e293b" style="background:#fbcfe8;" title="ピンク"></button>
+                      <button type="button" class="palette-swatch-sm" data-bg="#fed7aa" data-fg="#1e293b" style="background:#fed7aa;" title="オレンジ"></button>
+                      <button type="button" class="palette-swatch-sm" data-bg="#e9d5ff" data-fg="#1e293b" style="background:#e9d5ff;" title="パープル"></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="toolbar-sep"></div>
+              <div class="toolbar-group">
+                <button type="button" class="tb-btn" data-action="quote" title="引用 (> )"><i class="fa-solid fa-quote-left"></i></button>
+                <button type="button" class="tb-btn" data-action="codeblock" title="コードブロック (```lang)"><i class="fa-solid fa-code"></i></button>
+                <button type="button" class="tb-btn" data-action="hr" title="区切り線 (---)"><i class="fa-solid fa-minus"></i></button>
+                <button type="button" class="tb-btn" data-action="pagebreak" title="改ページを挿入 (PDF印刷時にここでページ分割)"><i class="fa-solid fa-file-circle-plus"></i> 改ページ</button>
+              </div>
+              <div class="toolbar-sep"></div>
+              <div class="toolbar-group">
+                <button type="button" class="tb-btn" data-action="ul" title="箇条書きリスト (- )"><i class="fa-solid fa-list-ul"></i></button>
+                <button type="button" class="tb-btn" data-action="ol" title="番号付きリスト (1. )"><i class="fa-solid fa-list-ol"></i></button>
+                <button type="button" class="tb-btn" data-action="task" title="タスクチェックボックス (- [ ] )"><i class="fa-regular fa-square-check"></i></button>
+              </div>
+              <div class="toolbar-sep"></div>
+              <div class="toolbar-group">
+                <button type="button" class="tb-btn" data-action="table" title="テーブル表を挿入"><i class="fa-solid fa-table"></i> 表</button>
+                <button type="button" class="tb-btn" data-action="link" title="ハイパーリンクを挿入"><i class="fa-solid fa-link"></i></button>
+                <button type="button" class="tb-btn" data-action="alert-note" title="情報ノート (> [!NOTE])"><i class="fa-solid fa-circle-info" style="color:var(--accent-info);"></i></button>
+                <button type="button" class="tb-btn" data-action="alert-warn" title="警告ブロック (> [!WARNING])"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-warning);"></i></button>
+              </div>
+            </div>
+
+            <div class="note-editor-body">
+              <div class="note-editor-input-wrap">
+                <textarea id="noteMarkdownInput" class="note-markdown-textarea" placeholder="# Markdownでメモを書く...&#10;- テーブルやコードブロック対応&#10;- 上部ツールバーで文字色やマーカー、太字などをワンクリック装飾・自動保存されます"></textarea>
+              </div>
+              <div class="note-preview-wrap" id="noteMarkdownPreviewWrap">
+                <div class="preview-max-topbar" id="previewMaxTopbar" style="display:none;">
+                  <div class="preview-max-title" id="previewMaxTitle">
+                    <i class="fa-solid fa-file-lines" style="font-size:1.1rem; color:var(--accent-info);"></i>
+                    <span id="previewMaxTitleText" style="font-weight:700; font-size:1.05rem;">メモのプレビュー</span>
+                    <span id="previewMaxCategoryBadge" class="badge-cat" style="margin-left:8px;">General</span>
+                  </div>
+                  <div class="preview-max-actions">
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnPrintMaxPreviewPdf" title="プレビューをPDF出力 / 印刷">
+                      <i class="fa-solid fa-file-pdf" style="color:var(--accent-primary);"></i> PDF出力
+                    </button>
+                    <span class="preview-max-hint"><i class="fa-solid fa-circle-info"></i> <kbd>Esc</kbd> キーで元の表示に戻る</span>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnCloseMaxPreview"><i class="fa-solid fa-compress"></i> 元に戻す</button>
+                  </div>
+                </div>
+                <div class="note-preview-content" id="noteMarkdownPreview">
+                  <!-- Live Preview Rendered Here -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- App Status & Tips Footer (Height 28px, Full Width, Marquee Ticker) -->
+    <footer class="app-ticker-footer" id="appTickerFooter">
+      <div class="ticker-badge">
+        <i class="fa-solid fa-lightbulb"></i>
+        <span>Tips &amp; Shortcuts</span>
+      </div>
+      <div class="ticker-track-wrap">
+        <div class="ticker-track">
+          <div class="ticker-group">
+            <span class="ticker-item"><kbd>Ctrl</kbd>+<kbd>K</kbd> 高速検索</span>
+            <span class="ticker-sep">•</span>
+            <span class="ticker-item"><kbd>Ctrl</kbd>+<kbd>S</kbd> メモ即時保存</span>
+            <span class="ticker-sep">•</span>
+            <span class="ticker-item"><kbd>Esc</kbd> 最大化/モーダル解除</span>
+            <span class="ticker-sep">•</span>
+            <span class="ticker-item">💡 <code>{{変数名}}</code> はコピー時に対話的置換が可能</span>
+            <span class="ticker-sep">•</span>
+            <span class="ticker-item">💡 構成図は「キャンバスで再編集」から即座に更新可能</span>
+            <span class="ticker-sep">•</span>
+            <span class="ticker-item">💡 TF-IDFによりサイドバー下部に関連メモ上位3件を自動表示</span>
+            <span class="ticker-sep">•</span>
+            <span class="ticker-item">💡 <code>styles/</code> フォルダにCSSを追加するとテーマ一覧に自動登録</span>
+            <span class="ticker-sep">•</span>
+            <span class="ticker-item">💡 インシデントメモは「ポストモーテム化」で分析テンプレへ即時変換</span>
+            <span class="ticker-sep">•</span>
+          </div>
+          <div class="ticker-group" aria-hidden="true">
+            <span class="ticker-item"><kbd>Ctrl</kbd>+<kbd>K</kbd> 高速検索</span>
+            <span class="ticker-sep">•</span>
+            <span class="ticker-item"><kbd>Ctrl</kbd>+<kbd>S</kbd> メモ即時保存</span>
+            <span class="ticker-sep">•</span>
+            <span class="ticker-item"><kbd>Esc</kbd> 最大化/モーダル解除</span>
+            <span class="ticker-sep">•</span>
+            <span class="ticker-item">💡 <code>{{変数名}}</code> はコピー時に対話的置換が可能</span>
+            <span class="ticker-sep">•</span>
+            <span class="ticker-item">💡 構成図は「キャンバスで再編集」から即座に更新可能</span>
+            <span class="ticker-sep">•</span>
+            <span class="ticker-item">💡 TF-IDFによりサイドバー下部に関連メモ上位3件を自動表示</span>
+            <span class="ticker-sep">•</span>
+            <span class="ticker-item">💡 <code>styles/</code> フォルダにCSSを追加するとテーマ一覧に自動登録</span>
+            <span class="ticker-sep">•</span>
+            <span class="ticker-item">💡 インシデントメモは「ポストモーテム化」で分析テンプレへ即時変換</span>
+            <span class="ticker-sep">•</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Command Palette Modal (Ctrl+K) -->
+  <div class="modal-overlay" id="searchModalOverlay">
+    <div class="command-palette-card">
+      <div class="palette-input-wrap">
+        <i class="fa-solid fa-magnifying-glass" style="font-size:1.1rem; color:var(--text-muted);"></i>
+        <input type="text" id="paletteSearchInput" class="palette-input" placeholder="スニペット・メモ・タグ・コマンドを横断検索..." autocomplete="off">
+        <kbd class="search-shortcut">ESC で閉じる</kbd>
+      </div>
+      <div class="palette-results" id="paletteResults">
+        <div style="padding:20px; text-align:center; color:var(--text-muted); font-size:0.85rem;">
+          キーワードを入力するとミリ秒単位で高速検索します
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Snippet Edit/Create Modal -->
+  <div class="modal-overlay" id="snippetModalOverlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="snippetModalTitle">新規スニペットの作成</h3>
+        <button class="btn-icon" id="btnCloseSnippetModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="snippetEditId">
+        <div class="form-group">
+          <label>タイトル *</label>
+          <input type="text" id="snippetFormTitle" class="form-control" placeholder="例: Docker コンテナログ確認">
+        </div>
+        <div class="form-group">
+          <label>説明 (用途・注意点)</label>
+          <input type="text" id="snippetFormDesc" class="form-control" placeholder="例: 直近100行を追跡します">
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>カテゴリ</label>
+            <input type="text" id="snippetFormCategory" class="form-control" placeholder="例: Docker, Network, Linux">
+          </div>
+          <div class="form-group">
+            <label>言語</label>
+            <select id="snippetFormLanguage" class="form-control">
+              <optgroup label="シェル・OS・インフラ">
+                <option value="bash">Bash / Shell / Linux</option>
+                <option value="powershell">PowerShell</option>
+                <option value="bat">Windows Batch / CMD</option>
+                <option value="dockerfile">Dockerfile</option>
+                <option value="yaml">YAML / Docker Compose / K8s</option>
+                <option value="cisco">Cisco / VyOS / Network CLI</option>
+                <option value="nginx">Nginx Config</option>
+                <option value="hcl">Terraform / HCL</option>
+                <option value="ini">INI / Conf / Systemd</option>
+              </optgroup>
+              <optgroup label="プログラミング & スクリプト">
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="typescript">TypeScript</option>
+                <option value="go">Go</option>
+                <option value="rust">Rust</option>
+                <option value="sql">SQL</option>
+              </optgroup>
+              <optgroup label="データ・マークアップ">
+                <option value="json">JSON</option>
+                <option value="xml">HTML / XML</option>
+                <option value="css">CSS</option>
+                <option value="markdown">Markdown</option>
+                <option value="plaintext">Plain Text</option>
+              </optgroup>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>コマンド本文 * ({{変数名}} でパラメータ置換枠を作成できます)</label>
+          <textarea id="snippetFormCommand" class="form-control font-mono" style="min-height:130px;" placeholder="例: docker logs -f --tail 100 {{CONTAINER_NAME}}"></textarea>
+        </div>
+        <div class="form-group">
+          <label>タグ (カンマ区切り)</label>
+          <input type="text" id="snippetFormTags" class="form-control" placeholder="docker, logs, troubleshooting">
+        </div>
+        <div style="display:flex; gap:16px; margin-top:4px;">
+          <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;">
+            <input type="checkbox" id="snippetFormPinned"> <i class="fa-solid fa-thumbtack" style="color:#ef4444;"></i> ピン留め (上部に固定)
+          </label>
+          <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;">
+            <input type="checkbox" id="snippetFormFavorite"> <i class="fa-solid fa-star" style="color:#eab308;"></i> お気に入り
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelSnippetModal">キャンセル</button>
+        <button class="btn btn-primary" id="btnSaveSnippet">保存する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Variables Management Modal -->
+  <div class="modal-overlay" id="variablesModalOverlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-sliders" style="margin-right:6px;"></i> グローバル変数プリセット管理</h3>
+        <button class="btn-icon" id="btnCloseVariablesModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.82rem; color:var(--text-muted);">
+          コマンド内で <code>{{変数名}}</code> を使った際、ここに登録されている初期値がデフォルトでセットされます。
+        </p>
+        <div style="display:grid; grid-template-columns: 1fr 1.2fr 1.5fr auto; gap:8px; align-items:flex-end;">
+          <div class="form-group">
+            <label>変数名 (英数)</label>
+            <input type="text" id="newVarName" class="form-control font-mono" placeholder="TARGET_IP">
+          </div>
+          <div class="form-group">
+            <label>初期値</label>
+            <input type="text" id="newVarValue" class="form-control font-mono" placeholder="192.168.1.100">
+          </div>
+          <div class="form-group">
+            <label>説明</label>
+            <input type="text" id="newVarDesc" class="form-control" placeholder="接続先ホスト">
+          </div>
+          <button class="btn btn-primary" id="btnAddVariable" style="margin-bottom:2px;"><i class="fa-solid fa-plus"></i> 追加</button>
+        </div>
+        <div id="variablesTableWrap" style="max-height:280px; overflow-y:auto; margin-top:8px;">
+          <!-- Variables list table will be loaded here -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnDoneVariablesModal">完了</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Backup & Export Modal -->
+  <div class="modal-overlay" id="backupModalOverlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-floppy-disk" style="margin-right:6px;"></i> データ保全 & バックアップ管理</h3>
+        <button class="btn-icon" id="btnCloseBackupModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <button class="btn btn-primary" id="btnCreateBackupNow">
+            <i class="fa-solid fa-box-archive"></i> 即時バックアップを作成 (.db)
+          </button>
+          <button class="btn btn-secondary" id="btnExportJSON">
+            <i class="fa-solid fa-file-export"></i> 全データJSONエクスポート
+          </button>
+          <label class="btn btn-secondary" style="cursor:pointer;">
+            <i class="fa-solid fa-file-import"></i> JSONから復元/インポート
+            <input type="file" id="importFileInput" accept=".json" style="display:none;">
+          </label>
+        </div>
+
+        <!-- Backup Generation Limit Settings -->
+        <div style="margin-top:16px; padding:12px; border-radius:8px; background-color:var(--bg-app); border:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <div>
+            <div style="font-size:0.85rem; font-weight:600; color:var(--text-main);">
+              <i class="fa-solid fa-clock-rotate-left" style="margin-right:6px; color:var(--accent-primary);"></i>世代管理設定
+            </div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
+              保持する最大バックアップ世代数を設定します (超過分は古い順に自動削除)
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <label style="font-size:0.8rem; color:var(--text-muted);">保持世代数:</label>
+            <input type="number" id="inputBackupMaxGenerations" min="1" max="100" value="20" style="width:68px; padding:4px 8px; border-radius:4px; border:1px solid var(--border-subtle); background:var(--bg-card); color:var(--text-main); font-size:0.85rem; text-align:center;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btnSaveBackupSettings">保存</button>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+            <h4 style="font-size:0.9rem;" id="backupHistoryTitle">自動バックアップ履歴</h4>
+            <span style="font-size:0.75rem; color:var(--text-muted);">※「ロールバック」でその時点のDB状態へ安全に復元</span>
+          </div>
+          <div id="backupsListWrap" style="max-height:240px; overflow-y:auto; border-radius:6px; border:1px solid var(--border-subtle);">
+            <!-- Backups list -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnDoneBackupModal">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Note Template Selection Modal -->
+  <div class="modal-overlay" id="templateModalOverlay">
+    <div class="modal-card" style="max-width:580px;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-shapes" style="margin-right:6px; color:var(--accent-primary);"></i> テンプレートから新規メモ作成</h3>
+        <button class="btn-icon" id="btnCloseTemplateModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:14px;">
+          インフラ運用・障害対応・構築作業で即戦力となる構造化テンプレートを選択してください。
+        </p>
+        <div class="template-cards-grid">
+          <!-- 1. Incident Initial Log -->
+          <div class="template-card" data-template-key="incident">
+            <div class="template-card-icon" style="background:rgba(239, 68, 68, 0.12); color:#ef4444;">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div class="template-card-body">
+              <div class="template-card-title">インシデント初動ログ</div>
+              <div class="template-card-desc">障害発生時の時系列ログ、初動調査、影響範囲、暫定対処の即時記録用</div>
+            </div>
+            <button class="btn btn-secondary btn-sm template-apply-btn">作成</button>
+          </div>
+
+          <!-- 2. Post-Mortem -->
+          <div class="template-card" data-template-key="postmortem">
+            <div class="template-card-icon" style="background:rgba(245, 158, 11, 0.12); color:#f59e0b;">
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div class="template-card-body">
+              <div class="template-card-title">ポストモーテム (事後障害報告書)</div>
+              <div class="template-card-desc">SRE標準。概要、根本原因(5 Whys)、タイムライン、恒久対策Action Items</div>
+            </div>
+            <button class="btn btn-secondary btn-sm template-apply-btn">作成</button>
+          </div>
+
+          <!-- 3. Maintenance / Setup Procedure -->
+          <div class="template-card" data-template-key="maintenance">
+            <div class="template-card-icon" style="background:rgba(59, 130, 246, 0.12); color:#3b82f6;">
+              <i class="fa-solid fa-server"></i>
+            </div>
+            <div class="template-card-body">
+              <div class="template-card-title">サーバー構築・作業手順書</div>
+              <div class="template-card-desc">事前確認、タイムスケジュール、コマンド手順、切り戻し(ロールバック)計画</div>
+            </div>
+            <button class="btn btn-secondary btn-sm template-apply-btn">作成</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelTemplateModal">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Insert Snippet Modal -->
+  <div class="modal-overlay" id="insertSnippetModalOverlay" style="display:none;">
+    <div class="modal-card" style="max-width:680px; max-height:85vh; display:flex; flex-direction:column;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-bolt" style="margin-right:6px; color:var(--accent-warning);"></i> メモにスニペットを挿入</h3>
+        <button class="btn-icon" id="btnCloseInsertSnippetModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:12px; overflow:hidden; flex:1; padding-bottom:12px;">
+        <div style="position:relative;">
+          <input type="text" id="insertSnippetSearchInput" class="form-control" placeholder="スニペット名、コマンド、カテゴリで検索..." style="padding-left:34px;">
+          <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:0.85rem;"></i>
+        </div>
+        <div id="insertSnippetList" class="insert-snippet-list" style="overflow-y:auto; flex:1; max-height:420px; display:flex; flex-direction:column; gap:8px;">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelInsertSnippetModal">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Canvas Editor Modal (Full screen) -->
+  <div class="canvas-modal-overlay" id="canvasModalOverlay" style="display:none;">
+    <div class="canvas-container">
+      <!-- Canvas Header -->
+      <header class="canvas-header">
+        <div class="canvas-header-left">
+          <div class="brand-icon" style="width:28px; height:28px; font-size:0.85rem;"><i class="fa-solid fa-diagram-project"></i></div>
+          <span style="font-weight:700; font-size:0.95rem;">OpsNotes Canvas</span>
+          <input type="text" id="canvasDiagramTitle" class="form-control form-control-sm" style="width:200px; padding:3px 8px;" value="ネットワーク構成図">
+        </div>
+
+        <!-- Middle Controls: History, Snap, Zoom -->
+        <div class="canvas-header-center">
+          <div class="btn-group">
+            <button class="btn btn-icon btn-sm" id="btnCanvasUndo" title="元に戻す (Ctrl+Z)"><i class="fa-solid fa-arrow-rotate-left"></i></button>
+            <button class="btn btn-icon btn-sm" id="btnCanvasRedo" title="やり直し (Ctrl+Y)"><i class="fa-solid fa-arrow-rotate-right"></i></button>
+          </div>
+          <div class="canvas-divider"></div>
+          <button class="btn btn-secondary btn-sm active" id="btnCanvasSnap" title="グリッドスナップ ON/OFF">
+            <i class="fa-solid fa-magnet"></i> スナップ
+          </button>
+          <div class="canvas-divider"></div>
+          <!-- Zoom & Pan Controls -->
+          <div class="zoom-controls">
+            <button class="btn btn-icon btn-sm" id="btnCanvasZoomOut" title="縮小 (Ctrl + -)"><i class="fa-solid fa-minus"></i></button>
+            <span id="canvasZoomLabel" class="zoom-label" title="ダブルクリックで100%にリセット">100%</span>
+            <button class="btn btn-icon btn-sm" id="btnCanvasZoomIn" title="拡大 (Ctrl + +)"><i class="fa-solid fa-plus"></i></button>
+            <button class="btn btn-secondary btn-sm" id="btnCanvasZoomReset" title="原点・等倍(100%)にリセット">1:1</button>
+          </div>
+        </div>
+
+        <!-- Right Controls: Insert into Note, Export, Close -->
+        <div class="canvas-header-right">
+          <button class="btn btn-secondary btn-sm" id="btnCanvasCopySvg" title="クリップボードにSVGコードをコピー">
+            <i class="fa-solid fa-copy"></i> SVGコピー
+          </button>
+          <button class="btn btn-secondary btn-sm" id="btnCanvasDownloadSvg" title="SVGファイルとして保存">
+            <i class="fa-solid fa-download"></i> SVG保存
+          </button>
+          <button class="btn btn-primary btn-sm" id="btnCanvasInsertToNote" title="現在のMarkdownメモに挿入">
+            <i class="fa-solid fa-arrow-down-to-bracket"></i> メモに挿入
+          </button>
+          <button class="btn btn-icon" id="btnCloseCanvasModal" title="閉じる (Esc)"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </header>
+
+      <!-- Canvas Body: Left Toolbar | Main SVG Workspace | Right Properties -->
+      <div class="canvas-body">
+        <!-- Left Tool Palette -->
+        <aside class="canvas-toolbar">
+          <!-- Selection & Navigation -->
+          <div class="tool-section">
+            <div class="tool-section-title">基本</div>
+            <button class="tool-btn active" data-tool="select" title="選択・移動ツール (V)">
+              <i class="fa-solid fa-arrow-pointer"></i><span class="tool-label">選択</span>
+            </button>
+            <button class="tool-btn" data-tool="pan" title="手のひらツール (H / スペース+ドラッグ)">
+              <i class="fa-solid fa-hand"></i><span class="tool-label">パン</span>
+            </button>
+          </div>
+
+          <!-- Network Wiring & LAN Cables -->
+          <div class="tool-section">
+            <div class="tool-section-title">LAN配線 / ケーブル</div>
+            <button class="tool-btn" data-tool="orthogonal" title="LANケーブル (直角カギ折れ配線) - 機器をクリックして別の機器をクリック">
+              <i class="fa-solid fa-ethernet"></i><span class="tool-label">LANケーブル</span>
+            </button>
+            <button class="tool-btn" data-tool="line" title="直線ケーブル (最短距離で結線)">
+              <i class="fa-solid fa-wave-square"></i><span class="tool-label">直線ケーブル</span>
+            </button>
+            <button class="tool-btn" data-tool="spawn-cable" title="ケーブルをキャンバス中央に追加 (あとから端子をドラッグ接続)">
+              <i class="fa-solid fa-plus"></i><span class="tool-label">ケーブル追加</span>
+            </button>
+            <button class="tool-btn" data-tool="polyline" title="自由折れ線パス (クリックで頂点追加、ダブルクリックで完了)">
+              <i class="fa-solid fa-bezier-curve"></i><span class="tool-label">自由パス</span>
+            </button>
+          </div>
+
+          <!-- Basic Shapes -->
+          <div class="tool-section">
+            <div class="tool-section-title">図形</div>
+            <button class="tool-btn" data-tool="rect" title="四角形 (R)">
+              <i class="fa-regular fa-square"></i><span class="tool-label">四角</span>
+            </button>
+            <button class="tool-btn" data-tool="roundrect" title="角丸四角形">
+              <i class="fa-regular fa-square-full"></i><span class="tool-label">角丸</span>
+            </button>
+            <button class="tool-btn" data-tool="circle" title="円 (O)">
+              <i class="fa-regular fa-circle"></i><span class="tool-label">円</span>
+            </button>
+            <button class="tool-btn" data-tool="text" title="テキスト (T)">
+              <i class="fa-solid fa-font"></i><span class="tool-label">文字</span>
+            </button>
+          </div>
+
+          <!-- Architectural & Layout Items -->
+          <div class="tool-section">
+            <div class="tool-section-title">建築・間取り</div>
+            <button class="tool-btn" data-tool="wall" title="壁（厚み付き）">
+              <i class="fa-solid fa-grip-lines"></i><span class="tool-label">壁</span>
+            </button>
+            <button class="tool-btn" data-tool="door" title="扉（開き戸）">
+              <i class="fa-solid fa-door-open"></i><span class="tool-label">扉</span>
+            </button>
+            <button class="tool-btn" data-tool="sliding-door" title="引き戸（スライドドア）">
+              <i class="fa-solid fa-arrows-left-right-to-line"></i><span class="tool-label">引き戸</span>
+            </button>
+            <button class="tool-btn" data-tool="window" title="窓">
+              <i class="fa-regular fa-window-maximize"></i><span class="tool-label">窓</span>
+            </button>
+            <button class="tool-btn" data-tool="pillar" title="柱（四角柱）">
+              <i class="fa-solid fa-square"></i><span class="tool-label">柱</span>
+            </button>
+            <button class="tool-btn" data-tool="rack" title="サーバーラック枠 (19インチ)">
+              <i class="fa-solid fa-server"></i><span class="tool-label">ラック</span>
+            </button>
+          </div>
+
+          <!-- Network Devices -->
+          <div class="tool-section">
+            <div class="tool-section-title">ネットワーク機器</div>
+            <button class="tool-btn" data-tool="device-router" title="ルーター">
+              <i class="fa-solid fa-route"></i><span class="tool-label">Router</span>
+            </button>
+            <button class="tool-btn" data-tool="device-switch" title="L2/L3 スイッチ">
+              <i class="fa-solid fa-network-wired"></i><span class="tool-label">Switch</span>
+            </button>
+            <button class="tool-btn" data-tool="device-server" title="サーバー / VM">
+              <i class="fa-solid fa-server"></i><span class="tool-label">Server</span>
+            </button>
+            <button class="tool-btn" data-tool="device-nas" title="NAS / ストレージ">
+              <i class="fa-solid fa-hard-drive"></i><span class="tool-label">NAS</span>
+            </button>
+            <button class="tool-btn" data-tool="device-firewall" title="ファイアウォール">
+              <i class="fa-solid fa-shield-halved"></i><span class="tool-label">FW</span>
+            </button>
+            <button class="tool-btn" data-tool="device-ap" title="Wi-Fi AP">
+              <i class="fa-solid fa-wifi"></i><span class="tool-label">Wi-Fi AP</span>
+            </button>
+            <button class="tool-btn" data-tool="device-cloud" title="クラウド / インターネット">
+              <i class="fa-solid fa-cloud"></i><span class="tool-label">Cloud</span>
+            </button>
+            <button class="tool-btn" data-tool="device-pc" title="クライアント PC">
+              <i class="fa-solid fa-desktop"></i><span class="tool-label">PC</span>
+            </button>
+            <button class="tool-btn" data-tool="device-generic" title="汎用ノード / 機器">
+              <i class="fa-solid fa-microchip"></i><span class="tool-label">汎用機器</span>
+            </button>
+            <button class="tool-btn" data-tool="device-vm" title="仮想マシン / コンテナ">
+              <i class="fa-solid fa-cubes"></i><span class="tool-label">VM / Docker</span>
+            </button>
+          </div>
+        </aside>
+
+        <!-- Main SVG Canvas Workspace -->
+        <div class="canvas-workspace" id="canvasWorkspace">
+          <!-- LAN Wiring Guidance Banner -->
+          <div id="canvasWiringBanner" class="canvas-wiring-banner" style="display:none;">
+            <span><i class="fa-solid fa-ethernet"></i> <strong>LAN配線モード:</strong> 機器の上下左右にある四角い端子（ポート）をクリックするか、機器本体をクリックするだけで自動結線されます！</span>
+            <button class="btn btn-secondary btn-sm" id="btnExitWiring" style="margin-left:auto; padding:2px 8px; font-size:0.75rem;">完了 (Esc)</button>
+          </div>
+
+          <svg id="mainCanvasSvg" class="main-svg-canvas" width="4000" height="3000">
+            <defs>
+              <!-- Grid Pattern -->
+              <pattern id="gridPatternSmall" width="20" height="20" patternUnits="userSpaceOnUse">
+                <circle cx="10" cy="10" r="1" fill="var(--border-subtle)" opacity="0.6"/>
+              </pattern>
+              <!-- Arrow Marker for Lines -->
+              <marker id="arrowMarker" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+              </marker>
+            </defs>
+            <!-- Background Grid Layer -->
+            <rect id="canvasGridBg" x="0" y="0" width="100%" height="100%" fill="url(#gridPatternSmall)"/>
+            <!-- Diagram Elements Container (Transformed via Pan/Zoom) -->
+            <g id="canvasViewportGroup">
+              <!-- Rendered Shapes and Wires go here -->
+              <g id="canvasElementsLayer"></g>
+              <!-- Temporary Drawing / Preview Layer -->
+              <g id="canvasPreviewLayer"></g>
+              <!-- Selection Highlight & Handles Layer -->
+              <g id="canvasSelectionLayer"></g>
+            </g>
+          </svg>
+
+          <!-- Floating Device Info Hover Tooltip with ample distance (20px offset) -->
+          <div id="canvasHoverTooltip" class="canvas-hover-tooltip" style="display:none;"></div>
+        </div>
+
+        <!-- Right Property Inspector -->
+        <aside class="canvas-inspector" id="canvasInspector">
+          <div class="inspector-header">
+            <span>プロパティ</span>
+            <button class="btn btn-icon btn-sm" id="btnDeleteSelectedElement" title="選択項目を削除 (Del / Backspace)"><i class="fa-solid fa-trash-can"></i></button>
+          </div>
+
+          <div class="inspector-body">
+            <!-- VLAN / Line Presets -->
+            <div class="inspector-group">
+              <label>VLAN / 配線プリセット</label>
+              <div class="preset-pills">
+                <button class="pill-btn" data-preset="vlan-mgmt" style="border-left:4px solid #f97316;">管理(橙)</button>
+                <button class="pill-btn" data-preset="vlan-server" style="border-left:4px solid #3b82f6;">VLAN10(青)</button>
+                <button class="pill-btn" data-preset="vlan-dmz" style="border-left:4px solid #10b981;">VLAN20(緑)</button>
+                <button class="pill-btn" data-preset="trunk" style="border-left:4px solid #ef4444;">トランク(赤)</button>
+              </div>
+            </div>
+
+            <!-- Stroke (Line Color) Dropdown -->
+            <div class="inspector-group">
+              <label>枠線の色 (Stroke)</label>
+              <div class="color-dropdown-wrapper" id="wrapStrokeDropdown">
+                <button type="button" class="color-dropdown-trigger" id="btnStrokeDropdown">
+                  <span class="color-preview-chip" id="chipStrokeColor" style="background:#0284c7;"></span>
+                  <span class="color-text-label" id="labelStrokeColor">#0284c7</span>
+                  <span class="dropdown-arrow">▼</span>
+                </button>
+                <div class="color-palette-popover" id="popoverStrokeColor" style="display:none;">
+                  <div class="palette-swatches-grid" data-target="stroke">
+                    <button type="button" class="palette-swatch-item" data-color="#ffffff" title="白" style="background:#ffffff;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#0f172a" title="黒" style="background:#0f172a;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#475569" title="スレート" style="background:#475569;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#94a3b8" title="グレー" style="background:#94a3b8;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#cbd5e1" title="薄灰" style="background:#cbd5e1;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#0284c7" title="スカイブルー" style="background:#0284c7;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#3b82f6" title="ブルー" style="background:#3b82f6;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#06b6d4" title="シアン" style="background:#06b6d4;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#059669" title="エメラルド緑" style="background:#059669;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#84cc16" title="ライム" style="background:#84cc16;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#eab308" title="イエロー" style="background:#eab308;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#d97706" title="アンバー" style="background:#d97706;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#f97316" title="オレンジ" style="background:#f97316;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#dc2626" title="レッド" style="background:#dc2626;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#7c3aed" title="パープル" style="background:#7c3aed;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#ec4899" title="ピンク" style="background:#ec4899;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#fd6883" title="ローズ" style="background:#fd6883;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="transparent" title="なし(透過)" style="background:linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%); background-size: 8px 8px;"></button>
+                  </div>
+                  <div class="palette-custom-row">
+                    <span>カスタム:</span>
+                    <input type="color" id="propStrokeColor" value="#0284c7">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Fill Color Dropdown (Default White) -->
+            <div class="inspector-group">
+              <label>塗りつぶし (Fill)</label>
+              <div class="color-dropdown-wrapper" id="wrapFillDropdown">
+                <button type="button" class="color-dropdown-trigger" id="btnFillDropdown">
+                  <span class="color-preview-chip" id="chipFillColor" style="background:#ffffff;"></span>
+                  <span class="color-text-label" id="labelFillColor">#ffffff (白)</span>
+                  <span class="dropdown-arrow">▼</span>
+                </button>
+                <div class="color-palette-popover" id="popoverFillColor" style="display:none;">
+                  <div class="palette-swatches-grid" data-target="fill">
+                    <button type="button" class="palette-swatch-item" data-color="#ffffff" title="白 (基本)" style="background:#ffffff;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="transparent" title="透過(なし)" style="background:linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%); background-size: 8px 8px;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#f8fafc" title="極淡灰" style="background:#f8fafc;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#f1f5f9" title="薄灰" style="background:#f1f5f9;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#e2e8f0" title="淡灰" style="background:#e2e8f0;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#1e293b" title="ダーク" style="background:#1e293b;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#0f172a" title="黒" style="background:#0f172a;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#e0f2fe" title="淡青" style="background:#e0f2fe;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#d1fae5" title="淡緑" style="background:#d1fae5;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#fef3c7" title="淡黄" style="background:#fef3c7;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#ffedd5" title="淡橙" style="background:#ffedd5;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#fee2e2" title="淡赤" style="background:#fee2e2;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#f3e8ff" title="淡紫" style="background:#f3e8ff;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#0284c7" title="ブルー" style="background:#0284c7;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#059669" title="グリーン" style="background:#059669;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#dc2626" title="レッド" style="background:#dc2626;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#7c3aed" title="パープル" style="background:#7c3aed;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#342e2e" title="Ristretto" style="background:#342e2e;"></button>
+                  </div>
+                  <div class="palette-custom-row">
+                    <span>カスタム:</span>
+                    <input type="color" id="propFillColor" value="#ffffff">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Text Color Dropdown -->
+            <div class="inspector-group">
+              <label>文字の色 (Text)</label>
+              <div class="color-dropdown-wrapper" id="wrapTextColorDropdown">
+                <button type="button" class="color-dropdown-trigger" id="btnTextColorDropdown">
+                  <span class="color-preview-chip" id="chipTextColor" style="background:#0f172a;"></span>
+                  <span class="color-text-label" id="labelTextColor">#0f172a (黒)</span>
+                  <span class="dropdown-arrow">▼</span>
+                </button>
+                <div class="color-palette-popover" id="popoverCanvasTextColor" style="display:none;">
+                  <div class="palette-swatches-grid" data-target="textColor">
+                    <button type="button" class="palette-swatch-item" data-color="#0f172a" title="黒" style="background:#0f172a;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#ffffff" title="白" style="background:#ffffff;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#475569" title="スレート" style="background:#475569;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#94a3b8" title="グレー" style="background:#94a3b8;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#0284c7" title="スカイブルー" style="background:#0284c7;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#059669" title="グリーン" style="background:#059669;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#d97706" title="アンバー" style="background:#d97706;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#dc2626" title="レッド" style="background:#dc2626;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#7c3aed" title="パープル" style="background:#7c3aed;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#ec4899" title="ピンク" style="background:#ec4899;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#eab308" title="イエロー" style="background:#eab308;"></button>
+                    <button type="button" class="palette-swatch-item" data-color="#38bdf8" title="シアン" style="background:#38bdf8;"></button>
+                  </div>
+                  <div class="palette-custom-row">
+                    <span>カスタム:</span>
+                    <input type="color" id="propTextColor" value="#0f172a">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stroke Width -->
+            <div class="inspector-group">
+              <label>線の太さ: <strong id="propStrokeWidthVal">2px</strong></label>
+              <input type="range" id="propStrokeWidth" min="1" max="10" value="2" class="range-slider">
+            </div>
+
+            <!-- Stroke Style -->
+            <div class="inspector-group">
+              <label>線種</label>
+              <select id="propStrokeStyle" class="form-control form-control-sm">
+                <option value="solid">実線 ────</option>
+                <option value="dashed">破線 ╌╌╌╌</option>
+                <option value="dotted">点線 ┈┈┈┈</option>
+              </select>
+            </div>
+
+            <!-- Size (Width & Height) -->
+            <div id="inspectorDimensions" class="inspector-group" style="border-top:1px solid var(--border-subtle); padding-top:10px;">
+              <label>サイズ (幅 × 高さ)</label>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <input type="number" id="propWidth" min="20" max="2000" step="10" class="form-control form-control-sm" style="flex:1; min-width:0;" placeholder="幅">
+                <span style="font-size:0.75rem; color:var(--text-muted);">×</span>
+                <input type="number" id="propHeight" min="20" max="2000" step="10" class="form-control form-control-sm" style="flex:1; min-width:0;" placeholder="高さ">
+              </div>
+            </div>
+
+            <!-- Rotation -->
+            <div id="inspectorRotation" class="inspector-group" style="border-top:1px solid var(--border-subtle); padding-top:10px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label>回転 (Rotation)</label>
+                <strong id="propRotationVal" class="font-mono" style="font-size:0.8rem; color:var(--accent-primary);">0°</strong>
+              </div>
+              <input type="range" id="propRotation" min="0" max="360" value="0" class="range-slider">
+              <div style="display:flex; gap:4px; margin-top:4px;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btnRotateCCW" style="flex:1; font-size:0.72rem;" title="左に90°回転">↺ -90°</button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btnRotateReset" style="flex:1; font-size:0.72rem;" title="0°にリセット">0°</button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btnRotateCW" style="flex:1; font-size:0.72rem;" title="右に90°回転">↻ +90°</button>
+              </div>
+              <div style="display:flex; gap:6px; margin-top:8px;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btnFlipH" style="flex:1; font-size:0.75rem;" title="水平反転 (左右反転)">
+                  <i class="fa-solid fa-arrows-left-right" style="margin-right:4px;"></i> 左右反転
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btnFlipV" style="flex:1; font-size:0.75rem;" title="垂直反転 (上下反転)">
+                  <i class="fa-solid fa-arrows-up-down" style="margin-right:4px;"></i> 上下反転
+                </button>
+              </div>
+            </div>
+
+            <!-- LAN Cable Meta (Speed Label & Type Presets) -->
+            <div id="inspectorCableMeta" style="display:none; border-top:1px solid var(--border-subtle); padding-top:10px; margin-top:10px;">
+              <div class="inspector-group">
+                <label>LANケーブル種別 / 規格</label>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:8px;">
+                  <button type="button" class="btn btn-secondary btn-sm cable-type-btn" data-preset="cat6" style="border-left:4px solid #0284c7; font-size:0.75rem;">Cat6 (1G 青)</button>
+                  <button type="button" class="btn btn-secondary btn-sm cable-type-btn" data-preset="cat6a" style="border-left:4px solid #06b6d4; font-size:0.75rem;">Cat6A (10G 水)</button>
+                  <button type="button" class="btn btn-secondary btn-sm cable-type-btn" data-preset="fiber" style="border-left:4px solid #f97316; font-size:0.75rem;">光/DAC (10G 橙)</button>
+                  <button type="button" class="btn btn-secondary btn-sm cable-type-btn" data-preset="poe" style="border-left:4px solid #8b5cf6; font-size:0.75rem;">PoE給電 (紫)</button>
+                  <button type="button" class="btn btn-secondary btn-sm cable-type-btn" data-preset="trunk" style="border-left:4px solid #ef4444; font-size:0.75rem;">トランク (赤)</button>
+                  <button type="button" class="btn btn-secondary btn-sm cable-type-btn" data-preset="mgmt" style="border-left:4px solid #64748b; font-size:0.75rem;">管理 (灰破線)</button>
+                </div>
+              </div>
+              <div class="inspector-group">
+                <label>ケーブル表示ラベル (速度・ポート名など)</label>
+                <input type="text" id="propCableLabel" class="form-control form-control-sm" placeholder="例: 1Gbps, 10GbE, eth0 ⇄ p1">
+              </div>
+            </div>
+
+            <!-- Shape Title (For non-device shapes: Rectangles, Zones, Groups) -->
+            <div id="inspectorShapeTitleWrap" style="display:none; border-top:1px solid var(--border-subtle); padding-top:10px; margin-top:10px;">
+              <div class="inspector-group">
+                <label>タイトル / ゾーン名 (シェイプ左上に表示)</label>
+                <input type="text" id="propShapeTitle" class="form-control form-control-sm" placeholder="例: DMZゾーン, VLAN 10, Webサーバー群">
+              </div>
+            </div>
+
+            <!-- Device Meta (Host / IP / GW / DNS / VLAN / Notes & Custom Key-Value) -->
+            <div id="inspectorDeviceMeta" style="display:none; border-top:1px solid var(--border-subtle); padding-top:10px; margin-top:10px;">
+              <div class="inspector-group">
+                <label>ホスト名 / デバイス名</label>
+                <input type="text" id="propDeviceHostname" class="form-control form-control-sm" placeholder="例: rtr-core-01">
+              </div>
+              <div class="inspector-group">
+                <label>IPアドレス</label>
+                <input type="text" id="propDeviceIp" class="form-control form-control-sm font-mono" placeholder="例: 192.168.1.1/24">
+              </div>
+              <div class="inspector-grid-2col">
+                <div class="inspector-group">
+                  <label>GW (ゲートウェイ)</label>
+                  <input type="text" id="propDeviceGateway" class="form-control form-control-sm font-mono" placeholder="192.168.1.254">
+                </div>
+                <div class="inspector-group">
+                  <label>DNS</label>
+                  <input type="text" id="propDeviceDns" class="form-control form-control-sm font-mono" placeholder="8.8.8.8">
+                </div>
+              </div>
+              <div class="inspector-group">
+                <label>VLAN</label>
+                <input type="text" id="propDeviceVlan" class="form-control form-control-sm" placeholder="例: VLAN 10 (Server)">
+              </div>
+              <div class="inspector-group">
+                <label>アイコン / シンボル</label>
+                <select id="propDeviceIcon" class="form-control form-control-sm">
+                  <option value="🔲">🔲 汎用ノード / アプライアンス</option>
+                  <option value="🐳">🐳 VM / Dockerコンテナ</option>
+                  <option value="🌐">🌐 ルーター / ゲートウェイ</option>
+                  <option value="🔀">🔀 スイッチ (L2/L3)</option>
+                  <option value="🖥️">🖥️ サーバー / ホスト</option>
+                  <option value="💾">💾 NAS / ストレージ</option>
+                  <option value="🛡️">🛡️ ファイアウォール</option>
+                  <option value="📡">📡 AP / Wi-Fi</option>
+                  <option value="☁️">☁️ クラウド / WAN</option>
+                  <option value="💻">💻 クライアントPC</option>
+                  <option value="🖨️">🖨️ プリンター</option>
+                  <option value="📹">📹 監視カメラ (IoT)</option>
+                  <option value="⚡">⚡ UPS / 電源</option>
+                </select>
+              </div>
+              <div class="inspector-group">
+                <label>メモ / 補足情報</label>
+                <textarea id="propDeviceNotes" class="form-control form-control-sm" rows="2" placeholder="型番、設置場所、用途、ログインメモなど"></textarea>
+              </div>
+
+              <!-- Custom Key-Value Section -->
+              <div class="inspector-group" style="border-top:1px dashed var(--border-subtle); padding-top:8px; margin-top:8px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                  <label style="margin-bottom:0;">カスタム属性 (Key-Value)</label>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btnAddCustomProp" style="padding:2px 8px; font-size:0.72rem;">
+                    <i class="fa-solid fa-plus"></i> 追加
+                  </button>
+                </div>
+                <div id="deviceCustomPropsContainer" style="display:flex; flex-direction:column; gap:5px;">
+                  <!-- Dynamic Key-Value rows -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Text Content / Font Size / Alignment -->
+            <div id="inspectorTextMeta" style="display:none; border-top:1px solid var(--border-subtle); padding-top:10px; margin-top:10px;">
+              <div class="inspector-group">
+                <label>テキスト内容</label>
+                <input type="text" id="propTextContent" class="form-control form-control-sm" placeholder="ラベル文字">
+              </div>
+              <div class="inspector-group">
+                <label>配置 (揃え)</label>
+                <div style="display:flex; gap:6px;">
+                  <button type="button" class="btn btn-secondary btn-sm text-align-btn" id="btnAlignLeft" data-align="left" title="左寄せ" style="flex:1;"><i class="fa-solid fa-align-left"></i></button>
+                  <button type="button" class="btn btn-secondary btn-sm text-align-btn" id="btnAlignCenter" data-align="center" title="中央寄せ" style="flex:1;"><i class="fa-solid fa-align-center"></i></button>
+                  <button type="button" class="btn btn-secondary btn-sm text-align-btn" id="btnAlignRight" data-align="right" title="右寄せ" style="flex:1;"><i class="fa-solid fa-align-right"></i></button>
+                </div>
+              </div>
+              <div class="inspector-group">
+                <label>文字サイズ</label>
+                <select id="propFontSize" class="form-control form-control-sm">
+                  <option value="12">小 (12px)</option>
+                  <option value="14" selected>標準 (14px)</option>
+                  <option value="18">中 (18px)</option>
+                  <option value="24">大 (24px)</option>
+                  <option value="32">特大 (32px)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Arrange Elements -->
+            <div class="inspector-group" style="margin-top:auto; border-top:1px solid var(--border-subtle); padding-top:12px;">
+              <label>重なり順</label>
+              <div style="display:flex; gap:6px;">
+                <button class="btn btn-secondary btn-sm" id="btnBringToFront" style="flex:1;">最前面</button>
+                <button class="btn btn-secondary btn-sm" id="btnSendToBack" style="flex:1;">最背面</button>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- Canvas Footer / Status -->
+      <footer class="canvas-footer">
+        <div style="display:flex; align-items:center; gap:16px;">
+          <span>💡 <kbd>Space</kbd> + ドラッグでパン</span>
+          <span><kbd>ホイール</kbd> でズーム</span>
+          <span><kbd>Esc</kbd> で選択ツールに戻る</span>
+          <span><kbd>Del</kbd> で削除</span>
+          <span><kbd>ダブルクリック</kbd> でパス確定</span>
+        </div>
+        <div id="canvasCoordinates" class="font-mono">X: 0, Y: 0</div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- JavaScript Modules -->
+  <script type="module" src="/static/js/app.js?v=1.4.7"></script>
+</body>
+</html>

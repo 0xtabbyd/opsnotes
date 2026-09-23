@@ -1,0 +1,54 @@
+/* ===================================================
+   Custom Theme: Dark Terminal (CRT Green & Amber)
+   Applies to entire OpsNotes UI & Markdown Preview
+   =================================================== */
+
+[data-theme="dark-terminal"] {
+  --theme-name: "Dark Terminal";
+  --bg-app: #080c08;
+  --bg-base: #0c120c;
+  --bg-surface: #111a11;
+  --bg-surface-hover: #172417;
+  --bg-card: #0c120c;
+  --bg-card-hover: #111a11;
+  --bg-input: #050805;
+  --bg-code: #050805;
+  --border-subtle: #1e3820;
+  --border-focus: #22c55e;
+
+  --text-main: #4ade80;
+  --text-muted: #166534;
+  --text-sub: #22c55e;
+
+  --accent-primary: #22c55e;
+  --accent-hover: #4ade80;
+  --accent-secondary: #f59e0b;
+  --accent-success: #22c55e;
+  --accent-info: #06b6d4;
+  --accent-warning: #f59e0b;
+  --accent-purple: #a855f7;
+
+  --badge-bg: rgba(34, 197, 94, 0.15);
+  --badge-text: #4ade80;
+  --shadow-color: rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark-terminal"] .note-preview-content {
+  background-color: #050805 !important;
+  color: #4ade80 !important;
+  font-family: 'Fira Code', 'Courier New', monospace !important;
+  text-shadow: 0 0 3px rgba(34, 197, 94, 0.35);
+  border: 1px solid #1e3820 !important;
+}
+
+[data-theme="dark-terminal"] .note-preview-content h1,
+[data-theme="dark-terminal"] .note-preview-content h2,
+[data-theme="dark-terminal"] .note-preview-content h3 {
+  color: #ffb86c !important;
+  border-bottom: 1px dashed #1e3820 !important;
+}
+
+[data-theme="dark-terminal"] .note-preview-content pre {
+  background-color: #020402 !important;
+  border: 1px solid #22c55e !important;
+}

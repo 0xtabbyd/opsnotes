@@ -1,0 +1,38 @@
+# --- ユーザーデータ（絶対にコミットしない） ---
+# ホームラボの構成情報・IP・手順書が入るため、DBとバックアップは全階層で除外する
+*.db
+*.db-shm
+*.db-wal
+data/backups/*
+!data/backups/.gitkeep
+!data/.gitkeep
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+
+# --- 仮想環境・ビルド成果物 ---
+# 先頭の / でリポジトリ直下に限定している。
+# アンカーしないと static/js/lib/ のような同梱ライブラリまで巻き込むため。
+/.venv/
+/venv/
+/env/
+/ENV/
+/build/
+/dist/
+/*.egg-info/
+
+# --- エディタ / IDE ---
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.log
+*.tmp

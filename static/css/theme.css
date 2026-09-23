@@ -1,0 +1,257 @@
+/* ===================================================
+   HomeOps - VS Code Theme Stylesheet
+   Supports:
+   - Monokai Pro (Filter Ristretto)
+   - Catppuccin Mocha (Dark) & Latte (Light)
+   - Ayu Dark, Ayu Mirage & Ayu Light
+   - VS Code Dark+ & Light+
+   =================================================== */
+
+/* 1. Monokai Pro Filter Ristretto (Default Dark) */
+:root,
+[data-theme="monokai-ristretto"] {
+  --theme-name: "Monokai Pro Ristretto";
+  --bg-app: #201c1c;
+  --bg-base: #2c2525;
+  --bg-surface: #342e2e;
+  --bg-surface-hover: #3d3535;
+  --bg-card: #2c2525;
+  --bg-card-hover: #322b2b;
+  --bg-input: #241e1e;
+  --bg-code: #1c1818;
+  --border-subtle: #403636;
+  --border-focus: #fd6883;
+
+  --text-main: #fff1f3;
+  --text-muted: #998f8f;
+  --text-sub: #c3b7b8;
+
+  --accent-primary: #fd6883;       /* Rose */
+  --accent-hover: #ff859b;
+  --accent-secondary: #f38d70;     /* Orange */
+  --accent-success: #a8dc76;       /* Green */
+  --accent-info: #85dacc;          /* Cyan */
+  --accent-warning: #ffd866;       /* Yellow */
+  --accent-purple: #ab9df2;
+
+  --badge-bg: rgba(253, 104, 131, 0.15);
+  --badge-text: #fd6883;
+  --shadow-color: rgba(0, 0, 0, 0.4);
+}
+
+/* 2. Catppuccin Mocha (Dark) */
+[data-theme="catppuccin-mocha"] {
+  --theme-name: "Catppuccin Mocha";
+  --bg-app: #11111b;               /* Crust */
+  --bg-base: #181825;              /* Mantle */
+  --bg-surface: #1e1e2e;           /* Base */
+  --bg-surface-hover: #262739;
+  --bg-card: #1e1e2e;
+  --bg-card-hover: #242539;
+  --bg-input: #181825;
+  --bg-code: #11111b;
+  --border-subtle: #313244;        /* Surface0 */
+  --border-focus: #cba6f7;        /* Mauve */
+
+  --text-main: #cdd6f4;            /* Text */
+  --text-muted: #7f849c;           /* Overlay0 */
+  --text-sub: #a6adc8;             /* Subtext0 */
+
+  --accent-primary: #cba6f7;       /* Mauve */
+  --accent-hover: #d7bdf9;
+  --accent-secondary: #f5c2e7;     /* Pink */
+  --accent-success: #a6e3a1;       /* Green */
+  --accent-info: #89b4fa;          /* Blue */
+  --accent-warning: #f9e2af;       /* Yellow */
+  --accent-purple: #b4befe;
+
+  --badge-bg: rgba(203, 166, 247, 0.16);
+  --badge-text: #cba6f7;
+  --shadow-color: rgba(0, 0, 0, 0.45);
+}
+
+/* 3. Catppuccin Latte (Light) */
+[data-theme="catppuccin-latte"] {
+  --theme-name: "Catppuccin Latte";
+  --bg-app: #dce0e8;               /* Crust */
+  --bg-base: #e6e9ef;              /* Mantle */
+  --bg-surface: #eff1f5;           /* Base */
+  --bg-surface-hover: #e2e5eb;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f7f8fb;
+  --bg-input: #ffffff;
+  --bg-code: #e6e9ef;
+  --border-subtle: #ccd0da;        /* Surface0 */
+  --border-focus: #8839ef;        /* Mauve */
+
+  --text-main: #4c4f69;            /* Text */
+  --text-muted: #8c8fa1;           /* Overlay0 */
+  --text-sub: #6c6f85;             /* Subtext0 */
+
+  --accent-primary: #8839ef;       /* Mauve */
+  --accent-hover: #7222df;
+  --accent-secondary: #ea76cb;     /* Pink */
+  --accent-success: #40a02b;       /* Green */
+  --accent-info: #1e66f5;          /* Blue */
+  --accent-warning: #df8e1d;       /* Yellow */
+  --accent-purple: #7287fd;
+
+  --badge-bg: rgba(136, 57, 239, 0.12);
+  --badge-text: #8839ef;
+  --shadow-color: rgba(0, 0, 0, 0.08);
+}
+
+/* 4. Ayu Dark */
+[data-theme="ayu-dark"] {
+  --theme-name: "Ayu Dark";
+  --bg-app: #0a0e14;
+  --bg-base: #0f1419;
+  --bg-surface: #14191f;
+  --bg-surface-hover: #1b2129;
+  --bg-card: #12171d;
+  --bg-card-hover: #181e26;
+  --bg-input: #0b0f14;
+  --bg-code: #080b0f;
+  --border-subtle: #242d38;
+  --border-focus: #ffb454;
+
+  --text-main: #e6e1cf;
+  --text-muted: #5c6773;
+  --text-sub: #b3b1ad;
+
+  --accent-primary: #ffb454;       /* Accent Orange */
+  --accent-hover: #ffc277;
+  --accent-secondary: #f07178;     /* Coral */
+  --accent-success: #aad94c;       /* Green */
+  --accent-info: #39bae6;          /* Cyan */
+  --accent-warning: #ffb454;       /* Orange */
+  --accent-purple: #d2a6ff;
+
+  --badge-bg: rgba(255, 180, 84, 0.16);
+  --badge-text: #ffb454;
+  --shadow-color: rgba(0, 0, 0, 0.5);
+}
+
+/* 5. Ayu Mirage */
+[data-theme="ayu-mirage"] {
+  --theme-name: "Ayu Mirage";
+  --bg-app: #171b24;
+  --bg-base: #1f2430;
+  --bg-surface: #242936;
+  --bg-surface-hover: #2c3242;
+  --bg-card: #212633;
+  --bg-card-hover: #282e3e;
+  --bg-input: #191e2a;
+  --bg-code: #151821;
+  --border-subtle: #333948;
+  --border-focus: #ffcc66;
+
+  --text-main: #cbccc6;
+  --text-muted: #707a8c;
+  --text-sub: #a0a6b2;
+
+  --accent-primary: #ffcc66;       /* Gold/Orange */
+  --accent-hover: #ffd785;
+  --accent-secondary: #f28779;     /* Peach */
+  --accent-success: #bae67e;       /* Green */
+  --accent-info: #73d0ff;          /* Cyan */
+  --accent-warning: #ffd580;
+  --accent-purple: #dfbfff;
+
+  --badge-bg: rgba(255, 204, 102, 0.16);
+  --badge-text: #ffcc66;
+  --shadow-color: rgba(0, 0, 0, 0.45);
+}
+
+/* 6. Ayu Light */
+[data-theme="ayu-light"] {
+  --theme-name: "Ayu Light";
+  --bg-app: #f2f3f5;
+  --bg-base: #f8f9fa;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f0f2f5;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f9fafb;
+  --bg-input: #f8f9fa;
+  --bg-code: #f3f4f7;
+  --border-subtle: #e1e4e8;
+  --border-focus: #ff9940;
+
+  --text-main: #575f66;
+  --text-muted: #9da5b0;
+  --text-sub: #6f7882;
+
+  --accent-primary: #ff9940;       /* Orange */
+  --accent-hover: #f08324;
+  --accent-secondary: #f07178;
+  --accent-success: #86b300;
+  --accent-info: #55b4d4;
+  --accent-warning: #fa8d3e;
+  --accent-purple: #a37acc;
+
+  --badge-bg: rgba(255, 153, 64, 0.12);
+  --badge-text: #e07412;
+  --shadow-color: rgba(0, 0, 0, 0.08);
+}
+
+/* 7. VS Code Dark+ */
+[data-theme="vscode-dark"] {
+  --theme-name: "VS Code Dark+";
+  --bg-app: #181818;
+  --bg-base: #1e1e1e;
+  --bg-surface: #252526;
+  --bg-surface-hover: #2e2e2f;
+  --bg-card: #202021;
+  --bg-card-hover: #29292a;
+  --bg-input: #1a1a1a;
+  --bg-code: #161616;
+  --border-subtle: #3c3c3c;
+  --border-focus: #007acc;
+
+  --text-main: #d4d4d4;
+  --text-muted: #858585;
+  --text-sub: #b0b0b0;
+
+  --accent-primary: #007acc;       /* VS Code Blue */
+  --accent-hover: #1f8ad2;
+  --accent-secondary: #4ec9b0;     /* Teal */
+  --accent-success: #6a9955;       /* Comment Green */
+  --accent-info: #9cdcfe;          /* Light Blue */
+  --accent-warning: #dcdcaa;       /* Yellow */
+  --accent-purple: #c586c0;
+
+  --badge-bg: rgba(0, 122, 204, 0.18);
+  --badge-text: #3794ff;
+  --shadow-color: rgba(0, 0, 0, 0.45);
+}
+
+/* 8. VS Code Light+ */
+[data-theme="vscode-light"] {
+  --theme-name: "VS Code Light+";
+  --bg-app: #f0f0f0;
+  --bg-base: #f8f8f8;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f0f0f0;
+  --bg-card: #ffffff;
+  --bg-card-hover: #fafafa;
+  --bg-input: #ffffff;
+  --bg-code: #f3f3f3;
+  --border-subtle: #e5e5e5;
+  --border-focus: #0066b8;
+
+  --text-main: #333333;
+  --text-muted: #767676;
+  --text-sub: #555555;
+
+  --accent-primary: #0066b8;       /* Blue */
+  --accent-hover: #005294;
+  --accent-secondary: #098658;     /* Green */
+  --accent-success: #008000;
+  --accent-info: #0070c1;
+  --accent-warning: #b07000;
+  --accent-purple: #af00db;
+
+  --badge-bg: rgba(0, 102, 184, 0.12);
+  --badge-text: #0066b8;
+  --shadow-color: rgba(0, 0, 0, 0.08);
+}

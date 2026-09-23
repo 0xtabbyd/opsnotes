@@ -1,0 +1,48 @@
+/* ===================================================
+   Custom Theme: Minimalist Light (Clean Monochrome)
+   Applies to entire OpsNotes UI & Markdown Preview
+   =================================================== */
+
+[data-theme="minimal"] {
+  --theme-name: "Minimalist";
+  --bg-app: #f4f4f5;
+  --bg-base: #ffffff;
+  --bg-surface: #f4f4f5;
+  --bg-surface-hover: #e4e4e7;
+  --bg-card: #ffffff;
+  --bg-card-hover: #fafafa;
+  --bg-input: #ffffff;
+  --bg-code: #18181b;
+  --border-subtle: #e4e4e7;
+  --border-focus: #18181b;
+
+  --text-main: #09090b;
+  --text-muted: #71717a;
+  --text-sub: #52525b;
+
+  --accent-primary: #18181b;
+  --accent-hover: #27272a;
+  --accent-secondary: #52525b;
+  --accent-success: #15803d;
+  --accent-info: #0284c7;
+  --accent-warning: #b45309;
+  --accent-purple: #6d28d9;
+
+  --badge-bg: #e4e4e7;
+  --badge-text: #18181b;
+  --shadow-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="minimal"] .note-preview-content {
+  background-color: #ffffff !important;
+  color: #18181b !important;
+  border: 1px solid #e4e4e7 !important;
+  box-shadow: none !important;
+}
+
+[data-theme="minimal"] .note-preview-content h1,
+[data-theme="minimal"] .note-preview-content h2,
+[data-theme="minimal"] .note-preview-content h3 {
+  color: #09090b !important;
+  border-bottom: 1px solid #e4e4e7 !important;
+}

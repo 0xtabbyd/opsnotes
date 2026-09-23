@@ -1,0 +1,52 @@
+/* ===================================================
+   Custom Theme: Kawaii Pop (Pastel Pink)
+   Applies to entire OpsNotes UI & Markdown Preview
+   =================================================== */
+
+[data-theme="kawaii"] {
+  --theme-name: "Kawaii Pop";
+  --bg-app: #fff1f2;
+  --bg-base: #ffe4e6;
+  --bg-surface: #fecdd3;
+  --bg-surface-hover: #fda4af;
+  --bg-card: #fff1f2;
+  --bg-card-hover: #ffe4e6;
+  --bg-input: #ffffff;
+  --bg-code: #2e1065;
+  --border-subtle: #f43f5e;
+  --border-focus: #e11d48;
+
+  --text-main: #881337;
+  --text-muted: #9f1239;
+  --text-sub: #be123c;
+
+  --accent-primary: #e11d48;
+  --accent-hover: #be123c;
+  --accent-secondary: #f43f5e;
+  --accent-success: #059669;
+  --accent-info: #0284c7;
+  --accent-warning: #d97706;
+  --accent-purple: #9333ea;
+
+  --badge-bg: #fda4af;
+  --badge-text: #881337;
+  --shadow-color: rgba(225, 29, 72, 0.15);
+}
+
+[data-theme="kawaii"] .note-preview-content {
+  background: #ffffff !important;
+  color: #881337 !important;
+  border: 2px solid #fda4af !important;
+  border-radius: 14px !important;
+}
+
+[data-theme="kawaii"] .note-preview-content h1,
+[data-theme="kawaii"] .note-preview-content h2,
+[data-theme="kawaii"] .note-preview-content h3 {
+  color: #e11d48 !important;
+  border-bottom: 2px dotted #fda4af !important;
+}
+
+[data-theme="kawaii"] .note-preview-content h1::before { content: "🌸 "; }
+[data-theme="kawaii"] .note-preview-content h2::before { content: "✨ "; }
+[data-theme="kawaii"] .note-preview-content h3::before { content: "🎀 "; }
