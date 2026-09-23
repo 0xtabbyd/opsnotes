@@ -104,10 +104,6 @@ uv run --with-requirements requirements.txt server.py
 
 > **補足**: システムに Python が入っていても、uv は自身が管理する Python（`~/.local/share/uv/python/`）を使うため、環境を汚しません。特定バージョンで動かしたい場合は `--python 3.11` のように指定できます。
 
-### Windows で `start.bat` を使う場合
-
-`start.bat` をダブルクリックすると、サーバー起動とブラウザの自動オープンまで行われます。ただしこのバッチは**システムにインストール済みの Python と `pip` を前提**としており、上記の uv による手順とは別系統です。uv だけで運用する場合は使わないでください。
-
 ---
 
 ## 🖥️ デスクトップアプリ風に起動する方法（PWAライク）
@@ -126,7 +122,6 @@ OpsNotes/
 ├── database.py            # SQLite FTS5、データ保全・ロールバック、世代管理
 ├── similarity.py          # TF-IDF 関連メモ推薦エンジン
 ├── requirements.txt       # 依存ライブラリ (fastapi, uvicorn)
-├── start.bat              # ワンクリック起動バッチ (Windows)
 ├── README.md              # 仕様書 & 利用ガイド
 ├── data/                  # データベース保管ディレクトリ
 │   ├── opsnotes.db        # メインSQLiteデータベース (WAL)
