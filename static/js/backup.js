@@ -1,5 +1,5 @@
 /**
- * HomeOps - Backup & Data Management Module
+ * OpsNotes - Backup & Data Management Module
  * Manages automated backups, JSON export/import, and variable presets
  */
 

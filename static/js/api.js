@@ -1,5 +1,5 @@
 /**
- * HomeOps - API Client Module
+ * OpsNotes - API Client Module
  * Handles all REST API requests to FastAPI backend
  */
 

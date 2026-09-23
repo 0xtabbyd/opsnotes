@@ -1,5 +1,5 @@
 /**
- * HomeOps - Command Palette & Search Module
+ * OpsNotes - Command Palette & Search Module
  * Handles Ctrl+K modal, instant FTS5 search, and keyboard navigation
  */
 

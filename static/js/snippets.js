@@ -1,5 +1,5 @@
 /**
- * HomeOps - Snippets Manager Module
+ * OpsNotes - Snippets Manager Module
  * Renders snippet cards, interactive parameter replacement, and 1-click clipboard copy
  */
 

@@ -1,5 +1,5 @@
 /**
- * HomeOps / OpsNotes - Theme Manager
+ * OpsNotes - Theme Manager
  * Supports VS Code themes and dynamically loaded Custom Themes from styles/ directory.
  */
 

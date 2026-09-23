@@ -1,5 +1,5 @@
 /**
- * HomeOps / OpsNotes - Notes Module
+ * OpsNotes - Notes Module
  * Markdown Notes with Split View, Live Preview, Checklist Support, Enter-to-break,
  * 500ms Debounce Auto-Save, Rich Editor Toolbar (Color/Marker), TF-IDF Related Notes,
  * and Post-Mortem Incident Workflow.

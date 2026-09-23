@@ -1,5 +1,5 @@
 /**
- * HomeOps - Main Application Entrypoint
+ * OpsNotes - Main Application Entrypoint
  * Coordinates UI views, themes, sidebar navigation, and modular managers
  */
 

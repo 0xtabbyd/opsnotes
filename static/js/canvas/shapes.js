@@ -1,5 +1,5 @@
 /**
- * HomeOps Canvas - Shapes, Architectural Items & Network Devices Definitions
+ * OpsNotes Canvas - Shapes, Architectural Items & Network Devices Definitions
  */
 
 export const SHAPE_TYPES = {

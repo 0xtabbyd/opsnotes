@@ -1,5 +1,5 @@
 /**
- * HomeOps Canvas - Modal Controller & UI Wireup
+ * OpsNotes Canvas - Modal Controller & UI Wireup
  */
 
 import { CanvasEngine } from './canvasEngine.js';

@@ -1,5 +1,5 @@
 /* ===================================================
-   HomeOps - Modern Web UI Stylesheet
+   OpsNotes - Modern Web UI Stylesheet
    Crafted with high aesthetics, responsive layout & micro-animations
    =================================================== */
 
@@ -1706,7 +1706,7 @@ textarea.form-control {
 }
 
 /* ==========================================================================
-   HomeOps Canvas Modal & Editor Styles
+   OpsNotes Canvas Modal & Editor Styles
    ========================================================================== */
 .canvas-modal-overlay {
   position: fixed;

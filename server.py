@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-HomeOps - Backend API Server
+OpsNotes - Backend API Server
 FastAPI server providing REST APIs for snippets, markdown notes, FTS5 search, variables, and automated backups.
 """
 

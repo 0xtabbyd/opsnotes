@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-HomeOps / OpsNotes - TF-IDF Similarity Engine
+OpsNotes - TF-IDF Similarity Engine
 Lightweight, pure Python implementation for bilingual (Japanese & English) notes similarity.
 Zero external dependencies.
 """
