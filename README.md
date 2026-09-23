@@ -76,23 +76,37 @@ ByteStashの「手軽なスニペット＆ワンクリックコピー・パラ�
 
 ---
 
-## 🚀 起動方法
+## 🚀 クイックスタート
 
-### 最も簡単な方法（Windows）
-`start.bat` をダブルクリックするだけです。
-- Pythonおよび必要なライブラリ（`fastapi`, `uvicorn`）を自動検知・セットアップ
-- サーバー（`http://127.0.0.1:8420`）を起動
-- ブラウザが自動的に立ち上がります
+必要なのは [uv](https://docs.astral.sh/uv/) だけです。**Python のインストールも `pip install` も不要**です。uv が適切なバージョンの Python を自動で取得し、依存ライブラリを解決します。
 
-### 手動起動
-```bash
-# 依存ライブラリのインストール
-pip install -r requirements.txt
+### 1. uv をインストール
 
-# サーバー起動
-python server.py
+```powershell
+# Windows (PowerShell)
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
+
+```bash
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+### 2. 起動
+
+```bash
+uv run --with-requirements requirements.txt server.py
+```
+
 ブラウザで `http://127.0.0.1:8420` にアクセスしてください。
+
+初回はPythonと依存ライブラリの取得が走りますが、2回目以降はキャッシュが効いて数秒で起動します。プロジェクト内に `.venv` は作られず、uv のキャッシュ領域で完結します。
+
+> **補足**: システムに Python が入っていても、uv は自身が管理する Python（`~/.local/share/uv/python/`）を使うため、環境を汚しません。特定バージョンで動かしたい場合は `--python 3.11` のように指定できます。
+
+### Windows で `start.bat` を使う場合
+
+`start.bat` をダブルクリックすると、サーバー起動とブラウザの自動オープンまで行われます。ただしこのバッチは**システムにインストール済みの Python と `pip` を前提**としており、上記の uv による手順とは別系統です。uv だけで運用する場合は使わないでください。
 
 ---
 
