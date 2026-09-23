@@ -15,7 +15,7 @@ from typing import List, Dict, Any, Iterator, Optional, Tuple
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 BACKUP_DIR = os.path.join(DATA_DIR, "backups")
-DB_PATH = os.path.join(DATA_DIR, "homeops.db")
+DB_PATH = os.path.join(DATA_DIR, "opsnotes.db")
 
 # 通常の世代バックアップ（homeops_ は v0.1/v0.2 時代の旧プレフィックス）
 BACKUP_PREFIXES = ("opsnotes_backup_", "homeops_backup_")
@@ -396,7 +396,7 @@ def rollback_backup(filename: str) -> Dict[str, Any]:
     # 1. 安全のため、現在のDBの直前バックアップを自動作成
     pre_rollback_backup = create_backup(prefix="opsnotes_prerollback")
     
-    # 2. 対象のバックアップから homeops.db へオンラインリストア
+    # 2. 対象のバックアップから opsnotes.db へオンラインリストア
     src_conn = sqlite3.connect(target_path)
     try:
         with get_connection() as dst_conn:
