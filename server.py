@@ -8,6 +8,8 @@ FastAPI server providing REST APIs for snippets, markdown notes, FTS5 search, va
 import os
 import sys
 import json
+import logging
+import logging.handlers
 from datetime import datetime
 from contextlib import asynccontextmanager
 from typing import Dict, Any, Optional, List
@@ -24,6 +26,46 @@ import similarity
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 STYLES_DIR = os.path.join(BASE_DIR, "styles")
+
+logger = logging.getLogger("opsnotes")
+
+def env_flag(name: str, default: bool = False) -> bool:
+    return os.environ.get(name, "1" if default else "0").strip().lower() in ("1", "true", "yes", "on")
+
+# 常駐（サービス・コンテナ）と開発のどちらでも同じコードを使えるよう外から設定する。
+# コンテナ内では 0.0.0.0 でないと外から到達できないため HOST を上書きする。
+HOST = os.environ.get("OPSNOTES_HOST", "127.0.0.1")
+PORT = int(os.environ.get("OPSNOTES_PORT", "8420"))
+# 自動リロードはファイル監視の子プロセスを常駐させるため、既定では無効にする
+RELOAD = env_flag("OPSNOTES_RELOAD", False)
+LOG_FILE = os.environ.get("OPSNOTES_LOG_FILE", "").strip()
+
+def configure_file_logging(log_file: str):
+    """ログをファイルへ出力する。
+
+    コンソールを持たない起動方法（Windowsのpythonw.exe、サービス実行など）では
+    uvicorn既定のログ設定が sys.stderr を掴めず起動時に例外で落ちる。
+    ルートロガーを差し替えたうえで uvicorn には log_config=None を渡すことで回避する。
+    """
+    log_dir = os.path.dirname(os.path.abspath(log_file))
+    os.makedirs(log_dir, exist_ok=True)
+
+    handler = logging.handlers.RotatingFileHandler(
+        log_file, maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8"
+    )
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)-8s [%(name)s] %(message)s"))
+
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+    for existing in root.handlers[:]:
+        root.removeHandler(existing)
+    root.addHandler(handler)
+
+    # uvicorn は自前のハンドラを持つため、ルートへ流し直す
+    for name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+        lg = logging.getLogger(name)
+        lg.handlers.clear()
+        lg.propagate = True
 
 def sanitize_tags(tags_input) -> List[str]:
     """タグの先頭の # や空白を除去し、重複を排除してクリーンなリストにする"""
@@ -69,10 +111,13 @@ async def lifespan(app: FastAPI):
     # 起動処理
     database.init_db()
     cleanup_existing_tags()
-    backup_file = database.create_backup()
-    print(f"[OpsNotes] Database initialized & tags cleaned. Auto backup created: {backup_file}")
+    backup_file = database.create_startup_backup()
+    if backup_file:
+        logger.info("Database initialized. Startup backup created: %s", backup_file)
+    else:
+        logger.info("Database initialized. Startup backup skipped (recent backup exists).")
     yield
-    print("[OpsNotes] Server shutting down.")
+    logger.info("Server shutting down.")
 
 app = FastAPI(
     title="OpsNotes",
@@ -411,6 +456,21 @@ async def delete_variable(name: str):
 async def search(q: str):
     return database.search_all(q)
 
+@app.get("/api/health")
+async def health_check():
+    """常駐監視用の軽量ヘルスチェック。
+
+    プロセスが生きていてもDBに到達できない状態を検知するため、
+    応答を返すだけでなく実際にクエリを1本通す。
+    ウォッチドッグから頻繁に叩かれるので集計は行わない。
+    """
+    try:
+        with database.get_connection() as conn:
+            conn.execute("SELECT 1").fetchone()
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"database unavailable: {e}")
+    return {"status": "ok"}
+
 @app.get("/api/meta")
 async def get_meta():
     """サイドバー用のカテゴリ一覧・全タグ・集計メトリクスを取得"""
@@ -617,4 +677,10 @@ async def root():
     return JSONResponse({"message": "OpsNotes server is running. Web UI not found in static/"})
 
 if __name__ == "__main__":
-    uvicorn.run("server:app", host="127.0.0.1", port=8420, reload=True)
+    run_kwargs: Dict[str, Any] = {"host": HOST, "port": PORT, "reload": RELOAD}
+    if LOG_FILE:
+        configure_file_logging(LOG_FILE)
+        # 既定のログ設定は sys.stderr を前提とするため、ファイル出力時は組み立てさせない
+        run_kwargs["log_config"] = None
+    # reload はアプリをインポート文字列で渡す必要がある
+    uvicorn.run("server:app" if RELOAD else app, **run_kwargs)

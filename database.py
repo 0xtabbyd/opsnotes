@@ -8,6 +8,7 @@ SQLite with WAL mode, FTS5 full-text search, and automated backups.
 import os
 import sqlite3
 import json
+import time
 from contextlib import contextmanager
 from datetime import datetime
 from typing import List, Dict, Any, Iterator, Optional, Tuple
@@ -21,6 +22,9 @@ DB_PATH = os.path.join(DATA_DIR, "opsnotes.db")
 BACKUP_PREFIXES = ("opsnotes_backup_", "homeops_backup_")
 # ロールバック直前に自動退避されるバックアップ
 PREROLLBACK_PREFIXES = ("opsnotes_prerollback_",)
+
+# 起動時バックアップを作る最短間隔（秒）
+STARTUP_BACKUP_MIN_INTERVAL_SEC = 3600
 
 @contextmanager
 def get_connection() -> Iterator[sqlite3.Connection]:
@@ -384,6 +388,19 @@ def create_backup(prefix: str = "opsnotes_backup") -> str:
     cleanup_old_backups()
                 
     return backup_filename
+
+def create_startup_backup() -> Optional[str]:
+    """起動時バックアップ。直近のバックアップが新しければ作成しない。
+
+    起動失敗（ポート衝突など）でプロセスが再起動を繰り返すと、無条件に作成した場合は
+    同一内容のバックアップが保持世代数を埋め尽くし、過去に戻る手段が失われる。
+    """
+    files = list_backup_files(BACKUP_PREFIXES)
+    if files:
+        newest_path = os.path.join(BACKUP_DIR, files[-1])
+        if time.time() - os.path.getmtime(newest_path) < STARTUP_BACKUP_MIN_INTERVAL_SEC:
+            return None
+    return create_backup()
 
 def rollback_backup(filename: str) -> Dict[str, Any]:
     """指定されたバックアップからDBを安全にロールバック（復元）"""
