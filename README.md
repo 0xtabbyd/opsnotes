@@ -106,6 +106,106 @@ uv run --with-requirements requirements.txt server.py
 
 ---
 
+## 🔧 設定（環境変数）
+
+常駐時の挙動は環境変数で制御します。すべて省略可能です。
+
+| 変数 | 既定値 | 説明 |
+| :--- | :--- | :--- |
+| `OPSNOTES_HOST` | `127.0.0.1` | 待ち受けアドレス。コンテナ内では `0.0.0.0` が必要 |
+| `OPSNOTES_PORT` | `8420` | 待ち受けポート |
+| `OPSNOTES_RELOAD` | `0` | `1` でソース変更時の自動リロードを有効化（開発用） |
+| `OPSNOTES_LOG_FILE` | (未設定) | 指定するとログをファイルへ出力（5MB×3世代でローテーション） |
+
+`OPSNOTES_RELOAD=1` はファイル監視の常駐プロセスが増えCPUを消費し続けるため、**常駐運用では有効にしないでください**。
+
+---
+
+## ⏰ Windows で常駐させる（タスクスケジューラ）
+
+ログオンのたびに自動起動し、コンソール画面を出さずにバックグラウンドで動かす手順です。Docker は不要で、管理者権限も要りません。
+
+### 1. セットアップ（初回のみ）
+
+```powershell
+# uv のインストール（未導入の場合）
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# プロジェクトのフォルダへ移動
+cd C:\opsnotes
+
+# 仮想環境の作成（Python 本体も uv が自動取得します）
+uv venv --python 3.11
+uv pip install -r requirements.txt
+
+# ログの出力先を指定（絶対パスで指定してください）
+setx OPSNOTES_LOG_FILE "C:\opsnotes\logs\opsnotes.log"
+```
+
+`setx` の設定を反映させるため、一度 PowerShell を開き直してください。
+
+### 2. タスクとして登録
+
+`pythonw.exe` はコンソール画面を持たない Python です。これを使うことで黒い窓が出ません。
+
+```powershell
+schtasks /create /TN "OpsNotes" /SC ONLOGON /RL LIMITED /F ^
+  /TR "\"C:\opsnotes\.venv\Scripts\pythonw.exe\" \"C:\opsnotes\server.py\""
+```
+
+パスは実際の配置場所に読み替えてください。`server.py` を**絶対パスで渡すことが重要**です（タスクスケジューラは作業ディレクトリを指定できないため）。
+
+### 3. 異常終了時の自動復旧を設定
+
+`schtasks` コマンドでは設定できないため、GUI で行います。
+
+1. 「タスク スケジューラ」を開き、登録した **OpsNotes** を右クリック →「プロパティ」
+2. **「設定」タブ** を開く
+3. 「タスクが失敗した場合の再起動間隔」に **1 分**、「再起動試行回数」に **3 回** を設定
+4. 「タスクを停止するまでの時間」の**チェックを外す**（常駐させるため）
+
+### 4. 動作確認
+
+```powershell
+# 今すぐ起動
+schtasks /run /TN "OpsNotes"
+
+# 状態の確認
+schtasks /query /TN "OpsNotes" /V /FO LIST | findstr /C:"状態" /C:"前回の結果"
+
+# ヘルスチェック（{"status":"ok"} が返れば正常）
+curl http://127.0.0.1:8420/api/health
+```
+
+ブラウザで `http://127.0.0.1:8420` を開けば利用できます。
+
+### 5. ログの確認
+
+```powershell
+Get-Content C:\opsnotes\logs\opsnotes.log -Tail 20 -Wait
+```
+
+コンソールが出ないため、動作状況の確認はこのログが頼りになります。起動に失敗する場合もここに記録されます。
+
+### 6. 停止・削除
+
+```powershell
+schtasks /end /TN "OpsNotes"      # 停止
+schtasks /delete /TN "OpsNotes" /F # タスクごと削除
+```
+
+### 補足: 応答しなくなった場合の検知
+
+タスクスケジューラはプロセスの生死しか見ないため、「起動しているが応答しない」状態は検知できません。必要であれば、`/api/health` を定期的に確認して異常時に再起動するタスクを別途登録してください。
+
+```powershell
+# 5分ごとにヘルスチェックし、失敗したらタスクを再起動する例
+schtasks /create /TN "OpsNotes-Watchdog" /SC MINUTE /MO 5 /RL LIMITED /F ^
+  /TR "powershell -WindowStyle Hidden -Command \"try { Invoke-WebRequest -UseBasicParsing -TimeoutSec 10 http://127.0.0.1:8420/api/health | Out-Null } catch { schtasks /end /TN 'OpsNotes'; Start-Sleep 2; schtasks /run /TN 'OpsNotes' }\""
+```
+
+---
+
 ## 🖥️ デスクトップアプリ風に起動する方法（PWAライク）
 Google Chrome または Microsoft Edge で `http://127.0.0.1:8420` を開いた状態で：
 - **Edge の場合**: 画面右上のメニュー「...」→「アプリ」→「OpsNotes をアプリとしてインストール」
