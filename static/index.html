@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OpsNotes - ホームラボ運用ノート & コマンドスニペット</title>
+  <title>OpsNotes v0.4 - ホームラボ運用ノート & コマンドスニペット</title>
   <meta name="description" content="ホームラボ運用・コマンド・Markdownメモ・スニペットを一括管理する堅牢なローカルダッシュボード">
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <!-- Stylesheets -->
   <link rel="stylesheet" href="/static/css/theme.css?v=1.2.0">
-  <link rel="stylesheet" href="/static/css/style.css?v=1.4.5">
+  <link rel="stylesheet" href="/static/css/style.css?v=1.5.0">
   <!-- Markdown & Highlight Libraries (CDN with fallback) -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css">
@@ -24,7 +24,7 @@
       <div class="header-brand">
         <div class="brand-icon">ON</div>
         <span class="brand-title">OpsNotes</span>
-        <span class="brand-badge">Local Lab</span>
+        <span class="brand-badge">v0.4</span>
       </div>
 
       <!-- Quick Search Trigger (Ctrl+K) -->
@@ -231,7 +231,7 @@
 
                     <button type="button" class="btn btn-icon" id="btnNoteFavorite" title="お気に入りに追加/解除"><i class="fa-regular fa-star" id="noteFavIcon"></i></button>
                     <button type="button" class="btn btn-icon" id="btnNotePin" title="上部にピン留め/解除"><i class="fa-solid fa-thumbtack" id="notePinIcon" style="opacity:0.4;"></i></button>
-                    <button type="button" class="btn btn-secondary btn-sm note-action-btn" id="btnOpenCanvasFromNote" title="構成図・配置図を作成してメモに挿入">
+                    <button type="button" class="btn btn-secondary btn-sm note-action-btn" id="btnOpenCanvasFromNote" title="draw.ioで構成図・配置図を作成してメモに挿入">
                       <i class="fa-solid fa-diagram-project"></i>
                       <span class="note-btn-label">作図・挿入</span>
                     </button>
@@ -1193,10 +1193,41 @@
     </div>
   </div>
 
+  <!-- Draw.io Embed Modal (Full Screen Diagram Editor) -->
+  <div class="drawio-modal-overlay" id="drawioModalOverlay" style="display:none;">
+    <div class="drawio-container">
+      <header class="drawio-header">
+        <div class="drawio-header-left">
+          <i class="fa-solid fa-diagram-project" style="color:var(--accent-primary); font-size:1.1rem;"></i>
+          <span class="drawio-header-title">draw.io 作図エディタ</span>
+          <input type="text" id="drawioDiagramTitle" class="form-control form-control-sm drawio-title-input" placeholder="構成図のタイトル..." value="ネットワーク構成図">
+        </div>
+        <div class="drawio-header-center">
+          <span class="drawio-hint-badge"><i class="fa-solid fa-circle-info"></i> draw.ioツールバーの「保存」、または右上の「保存してメモに挿入」でメモに反映されます</span>
+        </div>
+        <div class="drawio-header-right">
+          <button type="button" class="btn btn-primary btn-sm" id="btnSaveDrawioToNote">
+            <i class="fa-solid fa-floppy-disk"></i> 保存してメモに挿入
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btnCloseDrawioModal">
+            <i class="fa-solid fa-xmark"></i> 閉じる
+          </button>
+        </div>
+      </header>
+      <div class="drawio-body" id="drawioBody">
+        <div class="drawio-loading-indicator" id="drawioLoadingIndicator">
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+          <span>draw.io を読み込み中...</span>
+        </div>
+        <iframe id="drawioEmbedFrame" class="drawio-iframe" allow="clipboard-read; clipboard-write" src=""></iframe>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- JavaScript Modules -->
-  <script type="module" src="/static/js/app.js?v=1.4.7"></script>
+  <script type="module" src="/static/js/app.js?v=1.5.0"></script>
 </body>
 </html>

@@ -9,7 +9,7 @@ import { snippetsManager } from './snippets.js';
 import { notesManager } from './notes.js';
 import { searchManager } from './search.js';
 import { backupManager } from './backup.js';
-import { initCanvasModal, openCanvasModal } from './canvas/canvasModal.js';
+import { initDrawioModal } from './drawio.js';
 
 // --- Toast Notification System ---
 export function showToast(message, type = 'info') {
@@ -75,8 +75,8 @@ class App {
       }
     });
 
-    // 3. キャンバス（作図）モジュールの初期化
-    initCanvasModal();
+    // 3. draw.io（作図・構成図）モジュールの初期化
+    initDrawioModal();
 
     // 4. UIイベントのバインド
     this.bindEvents();

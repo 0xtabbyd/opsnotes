@@ -7,7 +7,7 @@
 
 import { api } from './api.js';
 import { renderDiagramToSvgString } from './canvas/shapes.js';
-import { openCanvasWithData, openCanvasModal } from './canvas/canvasModal.js';
+import { openDrawioModal, openDrawioWithData } from './drawio.js';
 
 export const notesManager = {
   notes: [],
@@ -274,7 +274,9 @@ export const notesManager = {
           const isCanvasBlock = block.classList.contains('language-opsnotes-canvas') ||
                                 block.classList.contains('lang-opsnotes-canvas') ||
                                 block.classList.contains('language-homeops-canvas') ||
-                                block.classList.contains('lang-homeops-canvas');
+                                block.classList.contains('lang-homeops-canvas') ||
+                                block.classList.contains('language-drawio') ||
+                                block.classList.contains('lang-drawio');
           if (!isCanvasBlock) {
             window.hljs.highlightElement(block);
           }
@@ -308,20 +310,49 @@ export const notesManager = {
   },
 
   attachCanvasDiagrams(previewWrap, mdInput) {
-    const codeBlocks = previewWrap.querySelectorAll('pre code.language-opsnotes-canvas, pre code.lang-opsnotes-canvas, pre code.language-homeops-canvas, pre code.lang-homeops-canvas');
-    codeBlocks.forEach((codeEl, blockIndex) => {
+    // 1. draw.io blocks (Primary Diagram Engine in v0.4)
+    const drawioBlocks = previewWrap.querySelectorAll('pre code.language-drawio, pre code.lang-drawio');
+    drawioBlocks.forEach((codeEl, blockIndex) => {
       try {
-        const rawJson = codeEl.textContent.trim();
-        const diagramData = JSON.parse(rawJson);
-        const svgHtml = renderDiagramToSvgString(diagramData);
+        const rawContent = codeEl.textContent.trim();
+        let diagramData = null;
+        let svgHtml = '';
+
+        if (rawContent.startsWith('{')) {
+          diagramData = JSON.parse(rawContent);
+          svgHtml = diagramData.svg || '';
+        } else if (rawContent.startsWith('<')) {
+          diagramData = {
+            version: '1.0',
+            type: 'drawio',
+            title: 'draw.io 構成図',
+            xml: rawContent,
+            svg: ''
+          };
+        }
+
+        if (!diagramData) return;
+
+        if (!svgHtml) {
+          svgHtml = `<div class="drawio-xml-placeholder" style="padding:24px; text-align:center; color:var(--text-muted);">
+            <i class="fa-solid fa-diagram-project" style="font-size:1.6rem; color:var(--accent-primary); margin-bottom:8px; display:block;"></i>
+            <span>draw.io 構成図（右上の「draw.ioで編集」から編集・保存すると描画されます）</span>
+          </div>`;
+        }
 
         const embedDiv = document.createElement('div');
-        embedDiv.className = 'opsnotes-canvas-embed homeops-canvas-embed';
+        embedDiv.className = 'opsnotes-canvas-embed drawio-embed';
         embedDiv.innerHTML = `
           <div class="canvas-embed-header">
-            <div class="canvas-embed-title"><i class="fa-solid fa-diagram-project" style="margin-right:6px;"></i>${escapeHtml(diagramData.title || 'ネットワーク構成図')}</div>
+            <div class="canvas-embed-title">
+              <i class="fa-solid fa-diagram-project" style="margin-right:6px; color:var(--accent-primary);"></i>
+              <span>${escapeHtml(diagramData.title || 'draw.io 構成図')}</span>
+              <span class="badge-cat" style="margin-left:8px; font-size:0.7rem; background:rgba(56,189,248,0.15); color:var(--accent-primary);">draw.io</span>
+            </div>
             <div class="canvas-embed-actions">
-              <button type="button" class="btn btn-secondary btn-sm btn-reedit-canvas"><i class="fa-solid fa-pen-to-square"></i> キャンバスで再編集</button>
+              <button type="button" class="btn btn-secondary btn-sm btn-reedit-drawio">
+                <i class="fa-solid fa-pen-to-square"></i> draw.ioで編集
+              </button>
             </div>
           </div>
           <div class="canvas-embed-body">
@@ -329,16 +360,16 @@ export const notesManager = {
           </div>
         `;
 
-        const btnReedit = embedDiv.querySelector('.btn-reedit-canvas');
+        const btnReedit = embedDiv.querySelector('.btn-reedit-drawio');
         if (btnReedit) {
           btnReedit.addEventListener('click', () => {
-            openCanvasWithData(diagramData, (updatedDiagram) => {
+            openDrawioWithData(diagramData, (updatedDiagram) => {
               let currentIdx = 0;
               const text = mdInput.value;
-              const newText = text.replace(/```(?:opsnotes-canvas|homeops-canvas)\s*[\s\S]*?```/g, (fullMatch) => {
+              const newText = text.replace(/```(?:drawio)\s*[\s\S]*?```/g, (fullMatch) => {
                 if (currentIdx === blockIndex) {
                   currentIdx++;
-                  return `\`\`\`opsnotes-canvas\n${JSON.stringify(updatedDiagram, null, 2)}\n\`\`\``;
+                  return `\`\`\`drawio\n${JSON.stringify(updatedDiagram, null, 2)}\n\`\`\``;
                 }
                 currentIdx++;
                 return fullMatch;
@@ -355,9 +386,60 @@ export const notesManager = {
           pre.parentNode.replaceChild(embedDiv, pre);
         }
       } catch (err) {
-        console.warn('Failed to parse homeops-canvas block:', err);
+        console.warn('Failed to parse drawio block:', err);
       }
     });
+
+    // 2. Legacy opsnotes-canvas blocks (Backward compatibility)
+    const legacyBlocks = previewWrap.querySelectorAll('pre code.language-opsnotes-canvas, pre code.lang-opsnotes-canvas, pre code.language-homeops-canvas, pre code.lang-homeops-canvas');
+    legacyBlocks.forEach((codeEl, blockIndex) => {
+      try {
+        const rawJson = codeEl.textContent.trim();
+        const diagramData = JSON.parse(rawJson);
+        const svgHtml = renderDiagramToSvgString(diagramData);
+
+        const embedDiv = document.createElement('div');
+        embedDiv.className = 'opsnotes-canvas-embed homeops-canvas-embed';
+        embedDiv.innerHTML = `
+          <div class="canvas-embed-header">
+            <div class="canvas-embed-title"><i class="fa-solid fa-diagram-project" style="margin-right:6px;"></i>${escapeHtml(diagramData.title || 'ネットワーク構成図')}</div>
+            <div class="canvas-embed-actions">
+              <span class="badge-cat" style="font-size:0.7rem; color:var(--text-muted);">旧キャンバス形式</span>
+            </div>
+          </div>
+          <div class="canvas-embed-body">
+            ${svgHtml}
+          </div>
+        `;
+
+        const pre = codeEl.closest('pre');
+        if (pre && pre.parentNode) {
+          pre.parentNode.replaceChild(embedDiv, pre);
+        }
+      } catch (err) {
+        console.warn('Failed to parse legacy canvas block:', err);
+      }
+    });
+  },
+
+  insertDrawioIntoNote(diagramData) {
+    const textarea = document.getElementById('noteMarkdownInput');
+    if (!textarea) return;
+
+    const jsonStr = JSON.stringify(diagramData, null, 2);
+    const block = `\n\`\`\`drawio\n${jsonStr}\n\`\`\`\n`;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const val = textarea.value;
+
+    textarea.value = val.substring(0, start) + block + val.substring(end);
+    textarea.focus();
+    const newCursorPos = start + block.length;
+    textarea.setSelectionRange(newCursorPos, newCursorPos);
+
+    this.updatePreview();
+    this.triggerAutoSave();
   },
 
   // ==========================================
@@ -1448,7 +1530,9 @@ ${currentContent}
     if (btnOpenCanvasFromNote) {
       btnOpenCanvasFromNote.addEventListener('click', (e) => {
         e.preventDefault();
-        openCanvasModal();
+        openDrawioModal({}, (diagramData) => {
+          this.insertDrawioIntoNote(diagramData);
+        });
       });
     }
 
