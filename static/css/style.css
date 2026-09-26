@@ -3590,3 +3590,49 @@ svg.opsnotes-canvas-svg {
     background: #ffffff !important;
   }
 }
+
+
+/* ===================================================
+   Horizontal Rule (HR) & Image Preview Styling
+   =================================================== */
+hr {
+  border: none !important;
+  height: 1px !important;
+  background-color: var(--border-subtle, #334155) !important;
+  margin: 24px 0 !important;
+  display: block !important;
+  clear: both !important;
+}
+
+.note-preview-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  margin: 14px 0;
+  display: inline-block;
+  border: 1px solid var(--border-subtle);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.note-preview-content img:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+@media print {
+  hr {
+    border: none !important;
+    height: 1px !important;
+    background-color: #cbd5e1 !important;
+    margin: 16pt 0 !important;
+  }
+  .note-preview-content img,
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}

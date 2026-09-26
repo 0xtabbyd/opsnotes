@@ -1,3 +1,5 @@
+import base64
+import uuid
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -668,6 +670,66 @@ async def get_preview_styles():
                 "url": f"/styles/{f}"
             })
     return themes
+
+
+UPLOADS_DIR = os.path.join(database.DATA_DIR, "uploads")
+os.makedirs(UPLOADS_DIR, exist_ok=True)
+
+# ==========================================
+# Image Upload & Static Asset API
+# ==========================================
+
+@app.post("/api/upload-image")
+async def upload_image(request: Request):
+    """画像アップロードAPI (JSON base64形式)
+    外部pip依存 (python-multipart) 不要で動作
+    """
+    try:
+        body = await request.json()
+        filename = body.get("filename", "image.png")
+        data_uri = body.get("data", "")
+
+        if not data_uri:
+            raise HTTPException(status_code=400, detail="Image data is required")
+
+        if "," in data_uri:
+            header, b64_data = data_uri.split(",", 1)
+        else:
+            b64_data = data_uri
+
+        image_bytes = base64.b64decode(b64_data)
+
+        # File extension
+        ext = os.path.splitext(filename)[1].lower()
+        if ext not in (".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"):
+            ext = ".png"
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_name = f"img_{timestamp}_{uuid.uuid4().hex[:6]}{ext}"
+        target_path = os.path.join(UPLOADS_DIR, safe_name)
+
+        with open(target_path, "wb") as f:
+            f.write(image_bytes)
+
+        return {
+            "status": "ok",
+            "filename": safe_name,
+            "url": f"/api/uploads/{safe_name}",
+            "original_name": filename,
+            "size": len(image_bytes)
+        }
+    except Exception as e:
+        logger.error(f"Image upload failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/uploads/{filename}")
+async def get_uploaded_image(filename: str):
+    """保存された画像ファイルを提供"""
+    safe_filename = os.path.basename(filename)
+    filepath = os.path.join(UPLOADS_DIR, safe_filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(filepath)
 
 @app.get("/")
 async def root():

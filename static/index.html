@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <!-- Stylesheets -->
   <link rel="stylesheet" href="/static/css/theme.css?v=1.2.0">
-  <link rel="stylesheet" href="/static/css/style.css?v=1.5.0">
+  <link rel="stylesheet" href="/static/css/style.css?v=1.5.1">
   <!-- Markdown & Highlight Libraries (CDN with fallback) -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css">
@@ -342,6 +342,7 @@
               </div>
               <div class="toolbar-sep"></div>
               <div class="toolbar-group">
+                <button type="button" class="tb-btn" data-action="image" id="btnInsertImageToolbar" title="画像ファイルを挿入 (クリックで選択 / クリップボードCtrl+V / D&D対応)"><i class="fa-regular fa-image"></i> 画像</button>
                 <button type="button" class="tb-btn" data-action="table" title="テーブル表を挿入"><i class="fa-solid fa-table"></i> 表</button>
                 <button type="button" class="tb-btn" data-action="link" title="ハイパーリンクを挿入"><i class="fa-solid fa-link"></i></button>
                 <button type="button" class="tb-btn" data-action="alert-note" title="情報ノート (> [!NOTE])"><i class="fa-solid fa-circle-info" style="color:var(--accent-info);"></i></button>
@@ -352,6 +353,7 @@
             <div class="note-editor-body">
               <div class="note-editor-input-wrap">
                 <textarea id="noteMarkdownInput" class="note-markdown-textarea" placeholder="# Markdownでメモを書く...&#10;- テーブルやコードブロック対応&#10;- 上部ツールバーで文字色やマーカー、太字などをワンクリック装飾・自動保存されます"></textarea>
+                <input type="file" id="noteImageFileInput" accept="image/*" style="display:none;">
               </div>
               <div class="note-preview-wrap" id="noteMarkdownPreviewWrap">
                 <div class="preview-max-topbar" id="previewMaxTopbar" style="display:none;">
@@ -500,6 +502,7 @@
         <div class="form-group">
           <label>コマンド本文 * ({{変数名}} でパラメータ置換枠を作成できます)</label>
           <textarea id="snippetFormCommand" class="form-control font-mono" style="min-height:130px;" placeholder="例: docker logs -f --tail 100 {{CONTAINER_NAME}}"></textarea>
+                <input type="file" id="noteImageFileInput" accept="image/*" style="display:none;">
         </div>
         <div class="form-group">
           <label>タグ (カンマ区切り)</label>
@@ -1125,6 +1128,7 @@
               <div class="inspector-group">
                 <label>メモ / 補足情報</label>
                 <textarea id="propDeviceNotes" class="form-control form-control-sm" rows="2" placeholder="型番、設置場所、用途、ログインメモなど"></textarea>
+                <input type="file" id="noteImageFileInput" accept="image/*" style="display:none;">
               </div>
 
               <!-- Custom Key-Value Section -->
@@ -1228,6 +1232,6 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- JavaScript Modules -->
-  <script type="module" src="/static/js/app.js?v=1.5.0"></script>
+  <script type="module" src="/static/js/app.js?v=1.5.1"></script>
 </body>
 </html>

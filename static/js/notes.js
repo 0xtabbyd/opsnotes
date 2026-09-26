@@ -35,6 +35,7 @@ export const notesManager = {
 
     this.bindEvents();
     this.setupToolbar();
+    this.setupImageHandlers();
     this.initTemplateModal();
     await this.loadNotes();
   },
@@ -445,6 +446,131 @@ export const notesManager = {
   // ==========================================
   // リッチエディタ・ツールバー操作 & スクロール位置維持
   // ==========================================
+  
+  // ==========================================
+  // 画像アップロード & ペースト (Ctrl+V) & D&D
+  // ==========================================
+  setupImageHandlers() {
+    const textarea = document.getElementById('noteMarkdownInput');
+    const fileInput = document.getElementById('noteImageFileInput');
+    if (!textarea) return;
+
+    // 1. ツールバーからのファイル選択
+    if (fileInput) {
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (file) {
+          this.uploadAndInsertImage(file);
+          fileInput.value = ''; // リセット
+        }
+      });
+    }
+
+    // 2. クリップボードからの直接画像貼り付け (Ctrl+V / Cmd+V)
+    textarea.addEventListener('paste', (e) => {
+      const clipboardData = e.clipboardData || window.clipboardData;
+      if (!clipboardData || !clipboardData.items) return;
+
+      for (let i = 0; i < clipboardData.items.length; i++) {
+        const item = clipboardData.items[i];
+        if (item.type && item.type.startsWith('image/')) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) {
+            this.uploadAndInsertImage(file, 'clipboard-image');
+          }
+          break;
+        }
+      }
+    });
+
+    // 3. エディタへの画像ファイル ドラッグ＆ドロップ (D&D)
+    textarea.addEventListener('dragover', (e) => {
+      if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files')) {
+        e.preventDefault();
+        textarea.classList.add('dragover-active');
+      }
+    });
+
+    textarea.addEventListener('dragleave', (e) => {
+      textarea.classList.remove('dragover-active');
+    });
+
+    textarea.addEventListener('drop', (e) => {
+      textarea.classList.remove('dragover-active');
+      if (!e.dataTransfer || !e.dataTransfer.files) return;
+
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type && f.type.startsWith('image/'));
+      if (files.length > 0) {
+        e.preventDefault();
+        files.forEach(file => {
+          this.uploadAndInsertImage(file);
+        });
+      }
+    });
+  },
+
+  async uploadAndInsertImage(file, defaultAlt = '') {
+    const textarea = document.getElementById('noteMarkdownInput');
+    if (!textarea) return;
+
+    const altText = defaultAlt || file.name.replace(/\.[^/.]+$/, "");
+    this.updateSaveStatus('saving');
+
+    try {
+      const base64Data = await this.readFileAsDataURL(file);
+
+      const resp = await fetch('/api/upload-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: file.name,
+          data: base64Data
+        })
+      });
+
+      if (!resp.ok) {
+        throw new Error(`Upload failed: ${resp.status}`);
+      }
+
+      const result = await resp.json();
+      const imageUrl = result.url;
+      const markdownImage = `\n![${altText}](${imageUrl})\n`;
+
+      // カーソル位置へ挿入
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const val = textarea.value;
+
+      textarea.value = val.substring(0, start) + markdownImage + val.substring(end);
+      textarea.focus();
+      const newCursorPos = start + markdownImage.length;
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+
+      this.updatePreview();
+      this.triggerAutoSave();
+
+      if (window.showToast) {
+        window.showToast(`画像を挿入しました: ${altText}`, 'success');
+      }
+    } catch (err) {
+      console.error('Image upload failed:', err);
+      this.updateSaveStatus('error');
+      if (window.showToast) {
+        window.showToast('画像のアップロードに失敗しました', 'error');
+      }
+    }
+  },
+
+  readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (e) => reject(e);
+      reader.readAsDataURL(file);
+    });
+  },
+
   setupToolbar() {
     const toolbar = document.getElementById('editorToolbar');
     const textarea = document.getElementById('noteMarkdownInput');
@@ -724,10 +850,26 @@ export const notesManager = {
         after = '\n```';
         defaultText = selected || '# コマンドや設定コード';
         break;
-      case 'hr':
-        before = '\n---\n';
+      case 'hr': {
+        const isAtStart = (start === 0);
+        let leading = '';
+        if (!isAtStart) {
+          const beforeStr = val.substring(0, start);
+          if (!beforeStr.endsWith('\n\n')) {
+            leading = beforeStr.endsWith('\n') ? '\n' : '\n\n';
+          }
+        }
+        const afterStr = val.substring(end);
+        const trailing = afterStr.startsWith('\n\n') ? '' : (afterStr.startsWith('\n') ? '\n' : '\n\n');
+        before = `${leading}---\n${trailing}`;
         defaultText = '';
         break;
+      }
+      case 'image': {
+        const fileInput = document.getElementById('noteImageFileInput');
+        if (fileInput) fileInput.click();
+        return;
+      }
       case 'pagebreak': {
         const isAtStart = (start === 0);
         let leading = '';
