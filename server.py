@@ -33,8 +33,7 @@ logger = logging.getLogger("opsnotes")
 def env_flag(name: str, default: bool = False) -> bool:
     return os.environ.get(name, "1" if default else "0").strip().lower() in ("1", "true", "yes", "on")
 
-# 常駐（サービス・コンテナ）と開発のどちらでも同じコードを使えるよう外から設定する。
-# コンテナ内では 0.0.0.0 でないと外から到達できないため HOST を上書きする。
+# 常駐と開発のどちらでも同じコードを使えるよう外から設定する。
 HOST = os.environ.get("OPSNOTES_HOST", "127.0.0.1")
 PORT = int(os.environ.get("OPSNOTES_PORT", "8420"))
 # 自動リロードはファイル監視の子プロセスを常駐させるため、既定では無効にする

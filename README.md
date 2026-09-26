@@ -75,7 +75,7 @@ uv run --with-requirements requirements.txt server.py
 
 | 変数 | 既定値 | 説明 |
 | :--- | :--- | :--- |
-| `OPSNOTES_HOST` | `127.0.0.1` | 待ち受けアドレス。コンテナ内では `0.0.0.0` が必要 |
+| `OPSNOTES_HOST` | `127.0.0.1` | 待ち受けアドレス |
 | `OPSNOTES_PORT` | `8420` | 待ち受けポート |
 | `OPSNOTES_RELOAD` | `0` | `1` でソース変更時の自動リロードを有効化（開発用） |
 | `OPSNOTES_LOG_FILE` | (未設定) | 指定するとログをファイルへ出力（5MB×3世代でローテーション） |
