@@ -1,5 +1,3 @@
-import base64
-import uuid
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -10,6 +8,8 @@ FastAPI server providing REST APIs for snippets, markdown notes, FTS5 search, va
 import os
 import sys
 import json
+import uuid
+import base64
 import logging
 import logging.handlers
 from datetime import datetime
@@ -19,7 +19,6 @@ from typing import Dict, Any, Optional, List
 from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 import database
@@ -124,18 +123,14 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="OpsNotes",
     description="Homelab Notes, Command Knowledge & Snippet Management System",
-    version="1.0.0",
+    version="0.5.0",
     lifespan=lifespan
 )
 
-# CORS設定
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORSミドルウェアは意図的に設定していない。
+# フロントエンドとAPIは同一オリジン(127.0.0.1:8420)から配信されるため不要で、
+# allow_origins=["*"] にすると閲覧中の任意の外部サイトのJSが
+# 同一オリジンポリシーを回避して全データを読み書きできてしまう。
 
 # ==========================================
 # Snippets API
@@ -675,6 +670,11 @@ async def get_preview_styles():
 UPLOADS_DIR = os.path.join(database.DATA_DIR, "uploads")
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
+# アップロード上限。base64は約1.33倍に膨らむため、body側とデコード後の両方で確認する。
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10MB
+# ラスタ画像のみ許可。SVGはXML(=スクリプト実行可能)なので意図的に除外する。
+ALLOWED_IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
+
 # ==========================================
 # Image Upload & Static Asset API
 # ==========================================
@@ -697,11 +697,21 @@ async def upload_image(request: Request):
         else:
             b64_data = data_uri
 
-        image_bytes = base64.b64decode(b64_data)
+        # デコード前にbase64長からサイズを見積もり、巨大ペイロードを早期に弾く
+        if len(b64_data) > MAX_UPLOAD_BYTES * 4 // 3 + 4:
+            raise HTTPException(status_code=413, detail="Image exceeds size limit (10MB)")
 
-        # File extension
+        try:
+            image_bytes = base64.b64decode(b64_data)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid base64 image data")
+
+        if len(image_bytes) > MAX_UPLOAD_BYTES:
+            raise HTTPException(status_code=413, detail="Image exceeds size limit (10MB)")
+
+        # 拡張子ホワイトリスト。未許可(SVG含む)はPNGとして保存し、スクリプト実行を防ぐ
         ext = os.path.splitext(filename)[1].lower()
-        if ext not in (".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"):
+        if ext not in ALLOWED_IMAGE_EXTS:
             ext = ".png"
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -718,9 +728,12 @@ async def upload_image(request: Request):
             "original_name": filename,
             "size": len(image_bytes)
         }
+    except HTTPException:
+        # 自分で投げた 4xx はそのまま返す（generic except で500に化けさせない）
+        raise
     except Exception as e:
         logger.error(f"Image upload failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Image upload failed")
 
 @app.get("/api/uploads/{filename}")
 async def get_uploaded_image(filename: str):
@@ -729,7 +742,8 @@ async def get_uploaded_image(filename: str):
     filepath = os.path.join(UPLOADS_DIR, safe_filename)
     if not os.path.exists(filepath):
         raise HTTPException(status_code=404, detail="Image not found")
-    return FileResponse(filepath)
+    # ブラウザに画像として解釈させ、万一SVG等が紛れてもインライン実行させない
+    return FileResponse(filepath, headers={"Content-Disposition": "inline"})
 
 @app.get("/")
 async def root():
@@ -738,11 +752,28 @@ async def root():
         return FileResponse(index_path)
     return JSONResponse({"message": "OpsNotes server is running. Web UI not found in static/"})
 
+def warn_if_publicly_bound():
+    """認証が無いままLAN/公開バインドすると全データが誰でも読み書きできるため警告する。"""
+    loopback = ("127.0.0.1", "localhost", "::1", "")
+    if HOST not in loopback:
+        msg = (
+            f"OPSNOTES_HOST={HOST} で待ち受けます。OpsNotesには認証が無いため、"
+            "このアドレスに到達できる全員が全データを閲覧・改変できます。"
+            "信頼できないネットワークでは 127.0.0.1 のまま使ってください。"
+        )
+        logger.warning(msg)
+        # コンソール起動時は目に留まるようstderrにも出す
+        try:
+            print(f"[SECURITY WARNING] {msg}", file=sys.stderr)
+        except Exception:
+            pass
+
 if __name__ == "__main__":
     run_kwargs: Dict[str, Any] = {"host": HOST, "port": PORT, "reload": RELOAD}
     if LOG_FILE:
         configure_file_logging(LOG_FILE)
         # 既定のログ設定は sys.stderr を前提とするため、ファイル出力時は組み立てさせない
         run_kwargs["log_config"] = None
+    warn_if_publicly_bound()
     # reload はアプリをインポート文字列で渡す必要がある
     uvicorn.run("server:app" if RELOAD else app, **run_kwargs)

@@ -14,6 +14,8 @@ let isIframeReady = false;
 
 // Official diagrams.net embed URL with Japanese UI, atlas theme, spin indicator, and library sidebar
 const DRAWIO_EMBED_URL = 'https://embed.diagrams.net/?embed=1&ui=atlas&spin=1&proto=json&configure=1&lang=ja&libraries=1&noSaveBtn=0&saveAndExit=1';
+// postMessage受信時に送信元を検証するためのオリジン
+const DRAWIO_ORIGIN = 'https://embed.diagrams.net';
 
 export function initDrawioModal(opts = {}) {
   if (opts && opts.showToast) toastFn = opts.showToast;
@@ -50,6 +52,11 @@ export function initDrawioModal(opts = {}) {
 
   // 4. Listen for postMessage from draw.io embed
   window.addEventListener('message', (event) => {
+    // 送信元がdraw.ioのiframeであることを確認する。
+    // 検証しないと任意のサイト/iframeから偽メッセージを注入され、
+    // 意図しない図データの読み込み・保存を誘発されうる。
+    if (event.origin !== DRAWIO_ORIGIN) return;
+    if (event.source !== iframe.contentWindow) return;
     if (!event.data || typeof event.data !== 'string') return;
 
     let msg;
@@ -76,7 +83,7 @@ function handleDrawioMessage(msg, iframe, modalOverlay, titleInput) {
         action: 'load',
         autosave: 1,
         xml: currentXml || ''
-      }), '*');
+      }), DRAWIO_ORIGIN);
       break;
     }
 
@@ -87,7 +94,7 @@ function handleDrawioMessage(msg, iframe, modalOverlay, titleInput) {
         config: {
           defaultLibraries: 'general;uml;er;bpmn;flowchart;basic;arrows2;cisco;aws4;azure;gcp2'
         }
-      }), '*');
+      }), DRAWIO_ORIGIN);
       break;
     }
 
@@ -97,7 +104,7 @@ function handleDrawioMessage(msg, iframe, modalOverlay, titleInput) {
       iframe.contentWindow.postMessage(JSON.stringify({
         action: 'export',
         format: 'xmlsvg'
-      }), '*');
+      }), DRAWIO_ORIGIN);
       break;
     }
 
@@ -131,7 +138,7 @@ function requestDrawioExport() {
   iframe.contentWindow.postMessage(JSON.stringify({
     action: 'export',
     format: 'xmlsvg'
-  }), '*');
+  }), DRAWIO_ORIGIN);
 }
 
 function handleExportComplete(svgDataUri, xmlString, titleInput) {

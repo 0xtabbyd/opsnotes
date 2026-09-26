@@ -9,6 +9,25 @@ import { api } from './api.js';
 import { renderDiagramToSvgString } from './canvas/shapes.js';
 import { openDrawioModal, openDrawioWithData } from './drawio.js';
 
+/**
+ * Markdown/SVGをinnerHTMLへ差し込む前にサニタイズする。
+ * marked はHTMLを素通しするため、これを挟まないと <img onerror> 等の
+ * 保存型XSSがプレビュー描画時に実行される。DOMPurifyはSVG構成図の
+ * 図形は残しつつ script/onイベント属性/javascript: だけを除去する。
+ * 万一DOMPurifyが読めない場合は空文字を返し、危険なHTMLを描画しない。
+ */
+function sanitizeHtml(dirty) {
+  if (typeof window !== 'undefined' && window.DOMPurify) {
+    return window.DOMPurify.sanitize(dirty, {
+      ADD_TAGS: ['use'],
+      ADD_ATTR: ['target'],
+      FORBID_TAGS: ['style'],
+    });
+  }
+  console.error('DOMPurify unavailable: refusing to render unsanitized HTML');
+  return '';
+}
+
 export const notesManager = {
   notes: [],
   activeNoteId: null,
@@ -265,7 +284,7 @@ export const notesManager = {
       // 改ページ <!-- pagebreak --> の変換対応
       html = html.replace(/<!--\s*pagebreak\s*-->/gi, '<div class="page-break"></div>');
 
-      previewWrap.innerHTML = html;
+      previewWrap.innerHTML = sanitizeHtml(html);
 
       this.attachCheckboxEvents(previewWrap, mdInput);
       this.attachCanvasDiagrams(previewWrap, mdInput);
@@ -341,6 +360,8 @@ export const notesManager = {
           </div>`;
         }
 
+        // draw.ioが出力するSVGはscript/foreignObjectを含みうるため描画前に無害化する
+        const safeSvg = sanitizeHtml(svgHtml);
         const embedDiv = document.createElement('div');
         embedDiv.className = 'opsnotes-canvas-embed drawio-embed';
         embedDiv.innerHTML = `
@@ -357,7 +378,7 @@ export const notesManager = {
             </div>
           </div>
           <div class="canvas-embed-body">
-            ${svgHtml}
+            ${safeSvg}
           </div>
         `;
 
@@ -397,7 +418,7 @@ export const notesManager = {
       try {
         const rawJson = codeEl.textContent.trim();
         const diagramData = JSON.parse(rawJson);
-        const svgHtml = renderDiagramToSvgString(diagramData);
+        const safeSvg = sanitizeHtml(renderDiagramToSvgString(diagramData));
 
         const embedDiv = document.createElement('div');
         embedDiv.className = 'opsnotes-canvas-embed homeops-canvas-embed';
@@ -409,7 +430,7 @@ export const notesManager = {
             </div>
           </div>
           <div class="canvas-embed-body">
-            ${svgHtml}
+            ${safeSvg}
           </div>
         `;
 
