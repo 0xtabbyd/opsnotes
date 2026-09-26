@@ -112,6 +112,10 @@ async def lifespan(app: FastAPI):
     # 起動処理
     database.init_db()
     cleanup_existing_tags()
+    # 旧 data/uploads/ のファイルをDBへ取り込み(初回のみ)、その上でバックアップを作る
+    migrated = database.migrate_uploads_from_disk()
+    if migrated:
+        logger.info("Migrated %d image(s) from data/uploads into the database.", migrated)
     backup_file = database.create_startup_backup()
     if backup_file:
         logger.info("Database initialized. Startup backup created: %s", backup_file)
@@ -379,7 +383,9 @@ async def delete_note(note_id: int):
         cursor = conn.cursor()
         cursor.execute("DELETE FROM notes WHERE id = ?", (note_id,))
         conn.commit()
-    return {"status": "ok", "message": "Note deleted"}
+    # 削除したメモだけが参照していた画像を回収する（H-6対策）
+    removed = database.cleanup_orphan_images()
+    return {"status": "ok", "message": "Note deleted", "orphan_images_removed": removed}
 
 @app.get("/api/notes/{note_id}/related")
 async def get_related_notes(note_id: int, limit: int = 3):
@@ -570,9 +576,11 @@ async def import_data(payload: Dict[str, Any]):
     snippets = payload.get("snippets", [])
     notes = payload.get("notes", [])
     variables = payload.get("variables", [])
+    images = payload.get("images", [])
 
     imported_snippets = 0
     imported_notes = 0
+    imported_images = 0
 
     with database.get_connection() as conn:
         cursor = conn.cursor()
@@ -622,12 +630,31 @@ async def import_data(payload: Dict[str, Any]):
 
         conn.commit()
 
+    # 画像(base64)を実体ごと復元する。エクスポート先で参照が壊れないようにする(H-5)
+    for img in images:
+        fname = img.get("filename")
+        b64 = img.get("data_base64")
+        mime = img.get("mime") or database.IMAGE_MIME_BY_EXT.get(
+            os.path.splitext(fname or "")[1].lower(), "image/png"
+        )
+        if not fname or not b64:
+            continue
+        try:
+            data = base64.b64decode(b64)
+        except Exception:
+            continue
+        if len(data) > MAX_UPLOAD_BYTES:
+            continue
+        database.save_image(os.path.basename(fname), mime, data)
+        imported_images += 1
+
     similarity.invalidate_corpus()
 
     return {
         "status": "ok",
         "imported_snippets": imported_snippets,
-        "imported_notes": imported_notes
+        "imported_notes": imported_notes,
+        "imported_images": imported_images
     }
 
 # ==========================================
@@ -667,21 +694,19 @@ async def get_preview_styles():
     return themes
 
 
-UPLOADS_DIR = os.path.join(database.DATA_DIR, "uploads")
-os.makedirs(UPLOADS_DIR, exist_ok=True)
-
 # アップロード上限。base64は約1.33倍に膨らむため、body側とデコード後の両方で確認する。
+# 旧 data/uploads/ のファイルは起動時に database.migrate_uploads_from_disk() でDBへ移行する。
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10MB
-# ラスタ画像のみ許可。SVGはXML(=スクリプト実行可能)なので意図的に除外する。
-ALLOWED_IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
 
 # ==========================================
 # Image Upload & Static Asset API
+#   画像の実体はDB(images テーブル)に格納する。これによりバックアップ・
+#   エクスポート・ロールバックが画像を自動的に対象に含める(H-5対策)。
 # ==========================================
 
 @app.post("/api/upload-image")
 async def upload_image(request: Request):
-    """画像アップロードAPI (JSON base64形式)
+    """画像アップロードAPI (JSON base64形式)。実体はDBへ保存する。
     外部pip依存 (python-multipart) 不要で動作
     """
     try:
@@ -711,15 +736,13 @@ async def upload_image(request: Request):
 
         # 拡張子ホワイトリスト。未許可(SVG含む)はPNGとして保存し、スクリプト実行を防ぐ
         ext = os.path.splitext(filename)[1].lower()
-        if ext not in ALLOWED_IMAGE_EXTS:
-            ext = ".png"
+        mime = database.IMAGE_MIME_BY_EXT.get(ext)
+        if mime is None:
+            ext, mime = ".png", "image/png"
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_name = f"img_{timestamp}_{uuid.uuid4().hex[:6]}{ext}"
-        target_path = os.path.join(UPLOADS_DIR, safe_name)
-
-        with open(target_path, "wb") as f:
-            f.write(image_bytes)
+        database.save_image(safe_name, mime, image_bytes)
 
         return {
             "status": "ok",
@@ -737,13 +760,18 @@ async def upload_image(request: Request):
 
 @app.get("/api/uploads/{filename}")
 async def get_uploaded_image(filename: str):
-    """保存された画像ファイルを提供"""
+    """DBに保存された画像を提供"""
     safe_filename = os.path.basename(filename)
-    filepath = os.path.join(UPLOADS_DIR, safe_filename)
-    if not os.path.exists(filepath):
+    row = database.get_image(safe_filename)
+    if row is None:
         raise HTTPException(status_code=404, detail="Image not found")
-    # ブラウザに画像として解釈させ、万一SVG等が紛れてもインライン実行させない
-    return FileResponse(filepath, headers={"Content-Disposition": "inline"})
+    from fastapi.responses import Response
+    # Content-Dispositionをinlineにし、万一SVG等が紛れてもダウンロード扱いにする
+    return Response(
+        content=row["data"],
+        media_type=row["mime"],
+        headers={"Content-Disposition": "inline"},
+    )
 
 @app.get("/")
 async def root():

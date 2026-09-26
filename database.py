@@ -6,12 +6,27 @@ SQLite with WAL mode, FTS5 full-text search, and automated backups.
 """
 
 import os
+import re
 import sqlite3
 import json
 import time
+import base64
 from contextlib import contextmanager
 from datetime import datetime
 from typing import List, Dict, Any, Iterator, Optional, Tuple
+
+# メモ本文中の画像参照 /api/uploads/<filename> を拾うための正規表現（H-6のGCで使用）
+_UPLOAD_REF_RE = re.compile(r"/api/uploads/([A-Za-z0-9_.\-]+)")
+
+# 許可する画像拡張子 → MIME。SVGはスクリプト実行の恐れがあるため含めない。
+IMAGE_MIME_BY_EXT = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".bmp": "image/bmp",
+}
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -108,6 +123,18 @@ def init_db():
         CREATE TABLE IF NOT EXISTS settings (
             key TEXT PRIMARY KEY,
             value TEXT NOT NULL
+        )
+        """)
+
+        # 6. 画像テーブル（実体をDBに格納し、バックアップ/エクスポート/ロールバックの対象に含める）
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS images (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            filename TEXT UNIQUE NOT NULL,
+            mime TEXT NOT NULL,
+            data BLOB NOT NULL,
+            size INTEGER NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
         """)
 
@@ -467,14 +494,105 @@ def export_all_data() -> Dict[str, Any]:
                 
         cursor.execute("SELECT * FROM variables ORDER BY id ASC")
         variables = [dict(row) for row in cursor.fetchall()]
-        
+
+        # 画像は実体(base64)ごとエクスポートし、他環境でも参照が壊れないようにする
+        cursor.execute("SELECT filename, mime, size, data FROM images ORDER BY id ASC")
+        images = []
+        for row in cursor.fetchall():
+            images.append({
+                "filename": row["filename"],
+                "mime": row["mime"],
+                "size": row["size"],
+                "data_base64": base64.b64encode(row["data"]).decode("ascii"),
+            })
+
         return {
-            "version": "1.0.0",
+            "version": "1.1.0",
             "exported_at": datetime.now().isoformat(),
             "snippets": snippets,
             "notes": notes,
-            "variables": variables
+            "variables": variables,
+            "images": images,
         }
+
+# ==========================================
+# 画像ストレージ（実体はDBに格納）
+# ==========================================
+
+def save_image(filename: str, mime: str, data: bytes) -> None:
+    """画像をDBへ保存（同名は置換）"""
+    with get_connection() as conn:
+        conn.execute("""
+        INSERT INTO images (filename, mime, data, size) VALUES (?, ?, ?, ?)
+        ON CONFLICT(filename) DO UPDATE SET
+            mime = excluded.mime, data = excluded.data, size = excluded.size
+        """, (filename, mime, data, len(data)))
+
+def get_image(filename: str) -> Optional[sqlite3.Row]:
+    """画像を1件取得（mime, data を含む）。無ければ None"""
+    with get_connection() as conn:
+        cur = conn.execute("SELECT filename, mime, data, size FROM images WHERE filename = ?", (filename,))
+        return cur.fetchone()
+
+def list_image_filenames() -> List[str]:
+    with get_connection() as conn:
+        return [r[0] for r in conn.execute("SELECT filename FROM images")]
+
+# アップロード直後まだメモに保存されていない画像をGCで巻き添えにしないための猶予（秒）
+ORPHAN_GRACE_SEC = 3600
+
+def cleanup_orphan_images(grace_seconds: int = ORPHAN_GRACE_SEC) -> int:
+    """どのメモ本文からも参照されていない画像を削除し、削除件数を返す（H-6対策）。
+
+    メモ本文中の /api/uploads/<filename> 参照を全走査し、そこに現れず、
+    かつ作成から grace_seconds 以上経過した画像行のみ削除する。冪等で安全。
+    猶予により、アップロード直後で自動保存前の画像は保護される。
+    """
+    with get_connection() as conn:
+        referenced = set()
+        for (content,) in conn.execute("SELECT content FROM notes"):
+            if not content:
+                continue
+            for m in _UPLOAD_REF_RE.finditer(content):
+                referenced.add(m.group(1))
+
+        deleted = 0
+        rows = conn.execute(
+            "SELECT filename FROM images "
+            "WHERE strftime('%s','now') - strftime('%s', created_at) >= ?",
+            (grace_seconds,),
+        ).fetchall()
+        for (fname,) in rows:
+            if fname not in referenced:
+                conn.execute("DELETE FROM images WHERE filename = ?", (fname,))
+                deleted += 1
+        return deleted
+
+def migrate_uploads_from_disk() -> int:
+    """旧 data/uploads/ のファイルをDBへ一度だけ取り込む（後方互換）。取り込んだ件数を返す。
+
+    取り込み後もファイルは消さず残す（安全側）。DBに同名が既にあればスキップ。
+    """
+    uploads_dir = os.path.join(DATA_DIR, "uploads")
+    if not os.path.isdir(uploads_dir):
+        return 0
+    existing = set(list_image_filenames())
+    migrated = 0
+    for fname in os.listdir(uploads_dir):
+        fpath = os.path.join(uploads_dir, fname)
+        if not os.path.isfile(fpath) or fname in existing:
+            continue
+        ext = os.path.splitext(fname)[1].lower()
+        mime = IMAGE_MIME_BY_EXT.get(ext)
+        if not mime:
+            continue
+        try:
+            with open(fpath, "rb") as f:
+                save_image(fname, mime, f.read())
+            migrated += 1
+        except OSError:
+            continue
+    return migrated
 
 def search_all(query: str, limit: int = 50) -> List[Dict[str, Any]]:
     """FTS5を用いた超高速インクリメンタル横断検索"""
