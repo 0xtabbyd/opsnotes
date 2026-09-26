@@ -4,7 +4,7 @@
  * Enables complete, enterprise-grade diagramming for networks, servers, and topologies
  */
 
-import { showToast } from './app.js';
+let toastFn = null;
 
 let currentCallback = null;
 let currentXml = '';
@@ -15,7 +15,8 @@ let isIframeReady = false;
 // Official diagrams.net embed URL with Japanese UI, atlas theme, spin indicator, and library sidebar
 const DRAWIO_EMBED_URL = 'https://embed.diagrams.net/?embed=1&ui=atlas&spin=1&proto=json&configure=1&lang=ja&libraries=1&noSaveBtn=0&saveAndExit=1';
 
-export function initDrawioModal() {
+export function initDrawioModal(opts = {}) {
+  if (opts && opts.showToast) toastFn = opts.showToast;
   const modalOverlay = document.getElementById('drawioModalOverlay');
   const btnClose = document.getElementById('btnCloseDrawioModal');
   const btnSave = document.getElementById('btnSaveDrawioToNote');
@@ -157,7 +158,7 @@ function handleExportComplete(svgDataUri, xmlString, titleInput) {
   }
 
   closeDrawioModal();
-  showToast('draw.io 構成図をメモに保存・反映しました', 'success');
+  if (toastFn) toastFn('draw.io 構成図をメモに保存・反映しました', 'success');
 }
 
 export function openDrawioModal(options = {}, callback = null) {

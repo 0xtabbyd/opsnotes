@@ -451,6 +451,8 @@ export const notesManager = {
   // 画像アップロード & ペースト (Ctrl+V) & D&D
   // ==========================================
   setupImageHandlers() {
+    if (this.imageHandlersInitialized) return;
+    this.imageHandlersInitialized = true;
     const textarea = document.getElementById('noteMarkdownInput');
     const fileInput = document.getElementById('noteImageFileInput');
     if (!textarea) return;
@@ -572,6 +574,8 @@ export const notesManager = {
   },
 
   setupToolbar() {
+    if (this.toolbarInitialized) return;
+    this.toolbarInitialized = true;
     const toolbar = document.getElementById('editorToolbar');
     const textarea = document.getElementById('noteMarkdownInput');
     if (!toolbar || !textarea) return;
@@ -1058,6 +1062,8 @@ export const notesManager = {
   // テンプレート管理
   // ==========================================
   initTemplateModal() {
+    if (this.templateModalInitialized) return;
+    this.templateModalInitialized = true;
     const modal = document.getElementById('templateModalOverlay');
     const btnOpen = document.getElementById('btnOpenTemplateModal');
     const btnClose = document.getElementById('btnCloseTemplateModal');
@@ -1476,6 +1482,8 @@ ${currentContent}
   },
 
   bindEvents() {
+    if (this.eventsBound) return;
+    this.eventsBound = true;
     const titleInput = document.getElementById('noteTitleInput');
     const catInput = document.getElementById('noteCategoryInput');
     const tagsInput = document.getElementById('noteTagsInput');

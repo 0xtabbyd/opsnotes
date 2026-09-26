@@ -5,6 +5,8 @@
 *.db-wal
 data/backups/*
 !data/backups/.gitkeep
+data/uploads/*
+!data/uploads/.gitkeep
 !data/.gitkeep
 
 # --- Python ---

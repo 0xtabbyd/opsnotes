@@ -45,6 +45,8 @@ class App {
   }
 
   async init() {
+    if (this.initialized) return;
+    this.initialized = true;
     // 1. テーマの初期化
     themeManager.init();
 
@@ -76,7 +78,7 @@ class App {
     });
 
     // 3. draw.io（作図・構成図）モジュールの初期化
-    initDrawioModal();
+    initDrawioModal({ showToast });
 
     // 4. UIイベントのバインド
     this.bindEvents();
@@ -470,6 +472,8 @@ function escapeHtml(str) {
 
 // 起動
 document.addEventListener('DOMContentLoaded', () => {
+  if (window.__opsnotes_app_started) return;
+  window.__opsnotes_app_started = true;
   const app = new App();
   app.init();
 });
