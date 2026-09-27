@@ -24,9 +24,16 @@ import uvicorn
 import database
 import similarity
 
+from dotenv import load_dotenv
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 STYLES_DIR = os.path.join(BASE_DIR, "styles")
+
+# 直下の .env を読み込む。シェルで既に設定された環境変数は上書きしない
+# (load_dotenv の既定動作)ため、`OPSNOTES_PORT=1234 python server.py` のような
+# 一時的な指定を優先できる。
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 logger = logging.getLogger("opsnotes")
 
