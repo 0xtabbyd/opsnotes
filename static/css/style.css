@@ -1303,7 +1303,7 @@ code, pre, kbd, .font-mono {
 .note-preview-wrap ul,
 .note-preview-wrap ol,
 .note-preview-wrap li,
-.note-preview-wrap blockquote,
+blockquote,
 .note-preview-wrap table {
   margin-bottom: 1em;
   word-break: break-word;
@@ -3634,5 +3634,190 @@ hr {
     border: 1px solid #e2e8f0 !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+  }
+}
+
+
+/* ===================================================
+   Modern GitHub-Style Markdown Alerts (Callouts)
+   =================================================== */
+
+/* Standard blockquote styling */
+blockquote:not(.markdown-alert) {
+  margin: 1.25em 0;
+  padding: 10px 16px;
+  border-left: 3.5px solid var(--border-subtle, #334155);
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 0 8px 8px 0;
+  color: var(--text-muted);
+}
+blockquote:not(.markdown-alert) p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Modern Alert Container */
+blockquote.markdown-alert {
+  margin: 1.25em 0;
+  padding: 14px 18px 14px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--alert-border);
+  border-left: 4px solid var(--alert-accent);
+  background: linear-gradient(135deg, var(--alert-bg) 0%, rgba(255, 255, 255, 0.01) 100%);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+blockquote.markdown-alert:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+
+/* Alert Title Header */
+blockquote.markdown-alert .markdown-alert-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--alert-accent);
+  line-height: 1;
+}
+
+blockquote.markdown-alert .markdown-alert-title i {
+  font-size: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: var(--alert-icon-bg);
+  flex-shrink: 0;
+}
+
+/* Alert Content */
+blockquote.markdown-alert p {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: var(--text-main);
+}
+
+blockquote.markdown-alert p + p {
+  margin-top: 8px;
+}
+
+blockquote.markdown-alert ul,
+blockquote.markdown-alert ol {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+  color: var(--text-main);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+blockquote.markdown-alert li + li {
+  margin-top: 4px;
+}
+
+blockquote.markdown-alert code {
+  background: rgba(0, 0, 0, 0.25);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-family: 'Fira Code', monospace;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Alert Type: NOTE (Sky Blue) */
+blockquote.markdown-alert-note {
+  --alert-accent: #38bdf8;
+  --alert-bg: rgba(56, 189, 248, 0.08);
+  --alert-border: rgba(56, 189, 248, 0.24);
+  --alert-icon-bg: rgba(56, 189, 248, 0.15);
+}
+
+/* Alert Type: TIP (Emerald Green) */
+blockquote.markdown-alert-tip {
+  --alert-accent: #22c55e;
+  --alert-bg: rgba(34, 197, 94, 0.08);
+  --alert-border: rgba(34, 197, 94, 0.24);
+  --alert-icon-bg: rgba(34, 197, 94, 0.15);
+}
+
+/* Alert Type: IMPORTANT (Violet / Purple) */
+blockquote.markdown-alert-important {
+  --alert-accent: #a855f7;
+  --alert-bg: rgba(168, 85, 247, 0.08);
+  --alert-border: rgba(168, 85, 247, 0.24);
+  --alert-icon-bg: rgba(168, 85, 247, 0.15);
+}
+
+/* Alert Type: WARNING (Amber / Gold) */
+blockquote.markdown-alert-warning {
+  --alert-accent: #f59e0b;
+  --alert-bg: rgba(245, 158, 11, 0.08);
+  --alert-border: rgba(245, 158, 11, 0.24);
+  --alert-icon-bg: rgba(245, 158, 11, 0.15);
+}
+
+/* Alert Type: CAUTION (Rose Red) */
+blockquote.markdown-alert-caution {
+  --alert-accent: #ef4444;
+  --alert-bg: rgba(239, 68, 68, 0.08);
+  --alert-border: rgba(239, 68, 68, 0.24);
+  --alert-icon-bg: rgba(239, 68, 68, 0.15);
+}
+
+/* Print Styles for Alerts */
+@media print {
+  blockquote.markdown-alert {
+    background: #f8fafc !important;
+    box-shadow: none !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  blockquote.markdown-alert-note {
+    border: 1px solid #bae6fd !important;
+    border-left: 4pt solid #0284c7 !important;
+  }
+  blockquote.markdown-alert-note .markdown-alert-title {
+    color: #0284c7 !important;
+  }
+  blockquote.markdown-alert-tip {
+    border: 1px solid #bbf7d0 !important;
+    border-left: 4pt solid #16a34a !important;
+  }
+  blockquote.markdown-alert-tip .markdown-alert-title {
+    color: #16a34a !important;
+  }
+  blockquote.markdown-alert-important {
+    border: 1px solid #e9d5ff !important;
+    border-left: 4pt solid #9333ea !important;
+  }
+  blockquote.markdown-alert-important .markdown-alert-title {
+    color: #9333ea !important;
+  }
+  blockquote.markdown-alert-warning {
+    border: 1px solid #fde68a !important;
+    border-left: 4pt solid #d97706 !important;
+  }
+  blockquote.markdown-alert-warning .markdown-alert-title {
+    color: #d97706 !important;
+  }
+  blockquote.markdown-alert-caution {
+    border: 1px solid #fecdd3 !important;
+    border-left: 4pt solid #e11d48 !important;
+  }
+  blockquote.markdown-alert-caution .markdown-alert-title {
+    color: #e11d48 !important;
+  }
+  blockquote.markdown-alert p {
+    color: #1e293b !important;
   }
 }

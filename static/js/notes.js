@@ -28,6 +28,61 @@ function sanitizeHtml(dirty) {
   return '';
 }
 
+// GitHubスタイルCallout (> [!NOTE] 等) の種別ごとのアイコン・既定タイトル
+const CALLOUT_META = {
+  NOTE:      { icon: 'fa-circle-info',          title: 'Note' },
+  TIP:       { icon: 'fa-lightbulb',            title: 'Tip' },
+  IMPORTANT: { icon: 'fa-bolt',                 title: 'Important' },
+  WARNING:   { icon: 'fa-triangle-exclamation', title: 'Warning' },
+  CAUTION:   { icon: 'fa-circle-stop',          title: 'Caution' },
+};
+const CALLOUT_MARKER_RE = /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*(.*)$/i;
+
+/**
+ * blockquote の marked レンダラー。GitHubスタイルCallout(`> [!WARNING] タイトル`)を
+ * 構文木の段階で判定して描画する。
+ *
+ * 以前は marked.parse() が吐いたHTML文字列を正規表現で書き換えていたが、
+ * breaks:true 設定により改行が <br> になるか生の \n のままかが揺れるため、
+ * その両方を吸収する分岐が必要になっていた。トークン段階なら改行は既に
+ * br/text トークンとして構造化済みなので、そうした出力のゆれに影響されない。
+ * marked.use({renderer:{blockquote}}) 経由で呼ばれるため、this は Renderer
+ * インスタンス(this.parser でトークン列を再帰的にHTML化できる)に束縛される。
+ */
+function renderBlockquote(quote) {
+  const tokens = quote.tokens || [];
+  const first = tokens[0];
+  const firstInline = first && first.type === 'paragraph' ? first.tokens?.[0] : null;
+  const marker = firstInline && firstInline.type === 'text'
+    ? CALLOUT_MARKER_RE.exec(firstInline.raw ?? firstInline.text ?? '')
+    : null;
+
+  if (marker) {
+    const type = marker[1].toUpperCase();
+    const customTitle = marker[2].trim();
+    const meta = CALLOUT_META[type];
+    const titleText = customTitle || meta.title;
+
+    // 見出し行の直後の改行トークンも合わせて読み飛ばす
+    let restOfFirstPara = first.tokens.slice(1);
+    if (restOfFirstPara[0]?.type === 'br') {
+      restOfFirstPara = restOfFirstPara.slice(1);
+    }
+
+    const bodyTokens = [];
+    if (restOfFirstPara.length) {
+      bodyTokens.push({ type: 'paragraph', raw: '', tokens: restOfFirstPara });
+    }
+    bodyTokens.push(...tokens.slice(1));
+
+    const bodyHtml = bodyTokens.length ? this.parser.parse(bodyTokens) : '';
+    return `<blockquote class="markdown-alert markdown-alert-${type.toLowerCase()}"><div class="markdown-alert-title"><i class="fa-solid ${meta.icon}"></i><span>${escapeHtml(titleText)}</span></div>${bodyHtml}</blockquote>\n`;
+  }
+
+  // 通常のblockquote(marked既定の描画を再現)
+  return `<blockquote>${this.parser.parse(tokens)}</blockquote>\n`;
+}
+
 export const notesManager = {
   notes: [],
   activeNoteId: null,
@@ -50,6 +105,7 @@ export const notesManager = {
         breaks: true,
         gfm: true
       });
+      window.marked.use({ renderer: { blockquote: renderBlockquote } });
     }
 
     this.bindEvents();
@@ -267,19 +323,8 @@ export const notesManager = {
       html = html.replace(/<li>\[ \]\s*/gi, '<li class="task-list-item"><input type="checkbox" class="task-checkbox"> ');
       html = html.replace(/<li>\[[xX]\]\s*/gi, '<li class="task-list-item checked"><input type="checkbox" class="task-checkbox" checked> ');
 
-      // GitHubスタイルCallout (> [!NOTE], > [!WARNING]) のレンダリング補正
-      html = html.replace(/<blockquote>\s*<p>\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/gi, (match, type) => {
-        const t = type.toUpperCase();
-        const colors = {
-          'NOTE': '#38bdf8',
-          'TIP': '#22c55e',
-          'IMPORTANT': '#a855f7',
-          'WARNING': '#f59e0b',
-          'CAUTION': '#ef4444'
-        };
-        const color = colors[t] || '#38bdf8';
-        return `<blockquote class="markdown-alert markdown-alert-${t.toLowerCase()}" style="border-left:4px solid ${color} !important; background:rgba(255,255,255,0.03);"><p><strong style="color:${color};"><i class="fa-solid fa-circle-exclamation" style="margin-right:4px;"></i>${t}</strong><br>`;
-      });
+      // GitHubスタイルCallout (> [!NOTE] 等) は renderBlockquote() が
+      // marked のトークン段階で描画済みのため、ここでの後処理は不要。
 
       // 改ページ <!-- pagebreak --> の変換対応
       html = html.replace(/<!--\s*pagebreak\s*-->/gi, '<div class="page-break"></div>');
