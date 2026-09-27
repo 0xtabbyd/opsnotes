@@ -116,6 +116,7 @@ def cleanup_existing_tags():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 起動処理
+    print_banner(HOST, PORT, app.version)
     database.init_db()
     cleanup_existing_tags()
     # 旧 data/uploads/ のファイルをDBへ取り込み(初回のみ)、その上でバックアップを作る
@@ -132,7 +133,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="OpsNotes",
-    description="Homelab Notes, Command Knowledge & Snippet Management System",
+    description="Command Knowledge & Snippet Management System with draw.io diagram creation & embedding",
     version="0.5.0",
     lifespan=lifespan
 )
@@ -786,6 +787,128 @@ async def root():
         return FileResponse(index_path)
     return JSONResponse({"message": "OpsNotes server is running. Web UI not found in static/"})
 
+_BANNER_PRINTED = False
+
+def print_banner(host: str = HOST, port: int = PORT, version: str = "0.5.0"):
+    """起動時にコンソールへOpsNotesのAsciiタイトルバナーを表示する。
+    pyfiglet または art ライブラリを使用し、鮮やかなグラデーションカラーで描画する。
+    """
+    global _BANNER_PRINTED
+    if _BANNER_PRINTED:
+        return
+    _BANNER_PRINTED = True
+
+    # 環境変数 OPSNOTES_BANNER=0 で無効化可能
+    if not env_flag("OPSNOTES_BANNER", True):
+        return
+
+    font_name = os.environ.get("OPSNOTES_BANNER_FONT", "ansi_shadow").strip()
+    theme_name = os.environ.get("OPSNOTES_BANNER_THEME", "emerald").strip().lower()
+
+    # テーマカラー定義 (start_rgb, end_rgb)
+    color_themes = {
+        "emerald": ((16, 255, 140), (0, 210, 255)),    # エメラルドグリーン → シアン
+        "matrix": ((0, 255, 90), (0, 190, 140)),
+        "cyberpunk": ((0, 245, 255), (255, 60, 210)),  # ネオンシアン → ネオンピンク/マゼンタ
+        "sunset": ((255, 60, 120), (255, 190, 40)),    # マゼンタ → オレンジ
+        "ocean": ((0, 150, 255), (0, 230, 210)),       # ディープブルー → アクア
+    }
+    start_rgb, end_rgb = color_themes.get(theme_name, color_themes["emerald"])
+
+    ascii_art = ""
+    # 1. pyfiglet を試行
+    try:
+        import pyfiglet
+        ascii_art = pyfiglet.figlet_format("OpsNotes", font=font_name)
+    except Exception:
+        pass
+
+    # 2. art を試行
+    if not ascii_art:
+        try:
+            import art
+            ascii_art = art.text2art("OpsNotes", font=font_name)
+        except Exception:
+            pass
+
+    # 3. フォールバック表示（ansi_shadowフォントの静的ASCII）
+    if not ascii_art:
+        ascii_art = (
+            " ██████╗ ██████╗ ███████╗███╗   ██╗ ██████╗ ████████╗███████╗███████╗\n"
+            "██╔═══██╗██╔══██╗██╔════╝████╗  ██║██╔═══██╗╚══██╔══╝██╔════╝██╔════╝\n"
+            "██║   ██║██████╔╝███████╗██╔██╗ ██║██║   ██║   ██║   █████╗  ███████╗\n"
+            "██║   ██║██╔═══╝ ╚════██║██║╚██╗██║██║   ██║   ██║   ██╔══╝  ╚════██║\n"
+            "╚██████╔╝██║     ███████║██║ ╚████║╚██████╔╝   ██║   ███████╗███████║\n"
+            " ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═══╝ ╚═════╝    ╚═╝   ╚══════╝╚══════╝\n"
+        )
+
+    # ANSIカラー装飾（TTYかつLOG_FILE未指定時のみ）
+    is_tty = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
+    use_color = is_tty and not LOG_FILE
+
+    lines = [l for l in ascii_art.splitlines() if l.strip()]
+    if not lines:
+        lines = [ascii_art]
+
+    if use_color:
+        # 文字ごとの横方向グラデーション
+        max_len = max((len(l) for l in lines), default=1)
+        colored_art_lines = []
+        for line in lines:
+            chars = []
+            for col, ch in enumerate(line):
+                ratio = col / max(max_len - 1, 1)
+                r = int(start_rgb[0] + (end_rgb[0] - start_rgb[0]) * ratio)
+                g = int(start_rgb[1] + (end_rgb[1] - start_rgb[1]) * ratio)
+                b = int(start_rgb[2] + (end_rgb[2] - start_rgb[2]) * ratio)
+                chars.append(f"\033[38;2;{r};{g};{b}m{ch}")
+            chars.append("\033[0m")
+            colored_art_lines.append("".join(chars))
+
+        # セパレーターバーのグラデーション
+        sep_len = max(max_len, 58)
+        sep_chars = []
+        for col in range(sep_len):
+            ratio = col / max(sep_len - 1, 1)
+            r = int(start_rgb[0] + (end_rgb[0] - start_rgb[0]) * ratio)
+            g = int(start_rgb[1] + (end_rgb[1] - start_rgb[1]) * ratio)
+            b = int(start_rgb[2] + (end_rgb[2] - start_rgb[2]) * ratio)
+            sep_chars.append(f"\033[38;2;{r};{g};{b}m─")
+        sep_chars.append("\033[0m")
+        sep_line = "".join(sep_chars)
+
+        c_start = f"\033[38;2;{start_rgb[0]};{start_rgb[1]};{start_rgb[2]}m"
+        c_end = f"\033[38;2;{end_rgb[0]};{end_rgb[1]};{end_rgb[2]}m"
+        c_bold = "\033[1m"
+        c_reset = "\033[0m"
+        c_underline = "\033[4m"
+
+        output_lines = [
+            "\n" + "\n".join(colored_art_lines),
+            sep_line,
+            f"  {c_bold}{c_start}Version{c_reset}  : v{version}",
+            f"  {c_bold}{c_end}URL{c_reset}      : {c_underline}http://{host}:{port}{c_reset}",
+            f"  {c_bold}{c_end}Docs{c_reset}     : {c_underline}http://{host}:{port}/docs{c_reset}",
+            sep_line,
+            ""
+        ]
+    else:
+        sep_line = "-" * 58
+        output_lines = [
+            "\n" + "\n".join(lines),
+            sep_line,
+            f"  Version  : v{version}",
+            f"  URL      : http://{host}:{port}",
+            f"  Docs     : http://{host}:{port}/docs",
+            sep_line,
+            ""
+        ]
+
+    try:
+        print("\n".join(output_lines), flush=True)
+    except Exception:
+        pass
+
 def warn_if_publicly_bound():
     """認証が無いままLAN/公開バインドすると全データが誰でも読み書きできるため警告する。"""
     loopback = ("127.0.0.1", "localhost", "::1", "")
@@ -808,6 +931,8 @@ if __name__ == "__main__":
         configure_file_logging(LOG_FILE)
         # 既定のログ設定は sys.stderr を前提とするため、ファイル出力時は組み立てさせない
         run_kwargs["log_config"] = None
+    else:
+        print_banner(HOST, PORT, app.version)
     warn_if_publicly_bound()
     # reload はアプリをインポート文字列で渡す必要がある
     uvicorn.run("server:app" if RELOAD else app, **run_kwargs)

@@ -1,6 +1,20 @@
-# OpsNotes v0.5 (オプス・ノート)
+# OpsNotes v0.5
 
-ホストOS（Windows / macOS / Linux）上で動く、ホームラボ運用ノート & コマンドスニペット管理ツール。ByteStash のスニペット管理と Trilium Notes の Markdown ノートを組み合わせ、構成図の作図やデータ保全のロールバックも備えています。
+**Command Knowledge & Snippet Management System with draw.io diagram creation & embedding**
+
+ホストOS（Windows / macOS / Linux）上で動作する、コマンドナレッジ & スニペット管理、および draw.io 作図・挿入機能付き Markdown メモツール。ByteStash のスニペット管理と Trilium Notes の Markdown ノートを組み合わせ、構成図の作図やデータ保全のロールバックも備えています。
+
+<p align="center">
+  <img src="docs/images/terminal_banner.png" alt="OpsNotes Terminal Banner" width="850">
+</p>
+
+---
+
+## 📸 画面イメージ
+
+| コマンドスニペット管理 | Markdown メモ & draw.io 作図・挿入 |
+| :---: | :---: |
+| <img src="docs/images/web_ui_snippets.png" alt="スニペット一覧" width="460"> | <img src="docs/images/web_ui_notes.png" alt="メモ一覧・エディタ" width="460"> |
 
 ---
 
@@ -9,17 +23,49 @@
 **コマンドスニペット管理**
 `{{TARGET_IP}}` のようなプレースホルダを書いておくと、コピー時に入力欄が出て値を埋め込める。よく使う変数はデフォルト値を登録可能。使用回数・お気に入り・ピン留めで並び替えできる。
 
+**draw.io 作図・挿入**
+メモ内から draw.io の日本語 UI をワンクリックで呼び出し、ネットワーク構成図やシステム図を直感的に作図・埋め込み可能。Cisco / AWS / Azure / GCP / Kubernetes などの公式シェイプに対応。作図結果は SVG として Markdown に即座に挿入され、後からいつでもキャンバスで再編集できる。[diagrams.net](https://www.diagrams.net/) が公式提供する埋め込み API を使用しています。
+
 **Markdown メモ**
 Split-View のライブプレビュー、500ms 間隔の自動保存、文字色・マーカーのリッチエディタ、リスト自動継続に対応。プレビューだけを A4 レイアウトで PDF 出力できる。障害対応メモはワンクリックでポストモーテムのテンプレートに展開でき、TF-IDF で内容の近いメモをサイドバーに自動表示する。
-
-**draw.io 連携**
-メモ内から draw.io の日本語UIをそのまま呼び出して構成図を作図できる。Cisco / AWS / Azure / GCP / Kubernetes などのシェイプに対応。作図結果は SVG として Markdown に埋め込まれ、後から再編集できる。v0.2/v0.3 で作った旧形式の図もそのまま表示される。
 
 **画面・操作性**
 サイドバーとメモ一覧はリサイズ・折りたたみ可能。Ctrl+K で全文検索（SQLite FTS5）。VS Code 風のテーマを複数搭載し、`styles/` に CSS を置くだけでカスタムテーマも追加できる。
 
 **データ保全**
 SQLite の WAL モードで単一ファイル管理。世代管理バックアップ（1〜100世代、既定20）と、ワンクリックのロールバックに対応。ロールバック前には直前の状態を自動退避するので誤復元しても戻せる。全データの JSON エクスポート/インポートも可能。
+
+---
+
+## 🎨 テーマ
+
+VS Code Light+ をデフォルトとし、ダーク・ライト合わせて 8 種類のビルトインテーマと、`styles/` に CSS を配置するだけで追加できるカスタムテーマ（3 種類同梱）に対応しています。
+
+### ビルトインテーマ
+
+| VS Code Dark+ | VS Code Light+ |
+| :---: | :---: |
+| <img src="docs/images/theme_vscode_dark.png" alt="VS Code Dark+" width="460"> | <img src="docs/images/theme_vscode_light.png" alt="VS Code Light+" width="460"> |
+
+| Catppuccin Mocha | Catppuccin Latte |
+| :---: | :---: |
+| <img src="docs/images/theme_catppuccin_mocha.png" alt="Catppuccin Mocha" width="460"> | <img src="docs/images/theme_catppuccin_latte.png" alt="Catppuccin Latte" width="460"> |
+
+| Ayu Dark | Ayu Light |
+| :---: | :---: |
+| <img src="docs/images/theme_ayu_dark.png" alt="Ayu Dark" width="460"> | <img src="docs/images/theme_ayu_light.png" alt="Ayu Light" width="460"> |
+
+| Ayu Mirage | Monokai |
+| :---: | :---: |
+| <img src="docs/images/theme_ayu_mirage.png" alt="Ayu Mirage" width="460"> | <img src="docs/images/theme_monokai_ristretto.png" alt="Monokai" width="460"> |
+
+### カスタムテーマ（同梱）
+
+| Dark Terminal | Kawaii Pop | Minimal |
+| :---: | :---: | :---: |
+| <img src="docs/images/theme_dark_terminal.png" alt="Dark Terminal" width="300"> | <img src="docs/images/theme_kawaii.png" alt="Kawaii Pop" width="300"> | <img src="docs/images/theme_minimal.png" alt="Minimal" width="300"> |
+
+> テーマ配色は各プロジェクト（[Catppuccin](https://github.com/catppuccin/catppuccin)・[Ayu](https://github.com/ayu-theme/ayu-colors)・Monokai）のカラースキームを参考に実装しています。
 
 ---
 
@@ -79,6 +125,9 @@ uv run --with-requirements requirements.txt server.py
 | `OPSNOTES_PORT` | `8420` | 待ち受けポート |
 | `OPSNOTES_RELOAD` | `0` | `1` でソース変更時の自動リロードを有効化（開発用） |
 | `OPSNOTES_LOG_FILE` | (未設定) | 指定するとログをファイルへ出力（5MB×3世代でローテーション） |
+| `OPSNOTES_BANNER` | `1` | `0` で起動時の ASCII アートバナー出力を無効化 |
+| `OPSNOTES_BANNER_FONT` | `ansi_shadow` | バナーのフォント名（`ansi_shadow`, `speed`, `slant`, `doom` 等） |
+| `OPSNOTES_BANNER_THEME` | `emerald` | バナーのカラーテーマ（`emerald`, `cyberpunk`, `sunset`, `ocean`, `matrix`） |
 
 `.env.example` を `.env` にコピーして書き換えれば、起動のたびにシェルで指定しなくても反映されます（`.env` は git 管理外）。シェルで直接指定した場合はそちらが優先されます。
 
@@ -183,11 +232,13 @@ Google Chrome または Microsoft Edge で `http://127.0.0.1:8420` を開いた�
 ## 📂 ディレクトリ構成
 ```
 OpsNotes/
-├── server.py              # FastAPI バックエンド & REST API
+├── server.py              # FastAPI バックエンド & REST API (起動バナー機能内蔵)
 ├── database.py            # SQLite FTS5、データ保全・ロールバック、世代管理
 ├── similarity.py          # TF-IDF 関連メモ推薦エンジン
-├── requirements.txt       # 依存ライブラリ (fastapi, uvicorn)
+├── requirements.txt       # 依存ライブラリ (fastapi, uvicorn, pyfiglet)
 ├── README.md              # 仕様書 & 利用ガイド
+├── docs/                  # ドキュメントアセット
+│   └── images/            # README掲載用スクリーンショット
 ├── data/                  # データベース保管ディレクトリ
 │   ├── opsnotes.db        # メインSQLiteデータベース (WAL)
 │   └── backups/           # 自動バックアップ (.db)
@@ -196,7 +247,7 @@ OpsNotes/
 │   ├── kawaii.css
 │   └── minimal.css
 └── static/
-    ├── index.html         # メインSPA UI
+    ├── index.html         # メインSPA UI (v0.5)
     ├── css/
     │   ├── theme.css      # テーマカラーパレット定義
     │   └── style.css      # UIスタイル・レイアウト・アニメーション
@@ -206,10 +257,7 @@ OpsNotes/
         ├── themes.js      # テーマ切り替えマネージャー
         ├── snippets.js    # スニペットカード＆パラメータ置換
         ├── notes.js       # Markdownメモ・リッチエディタ・作成日時ソート
+        ├── drawio.js      # draw.io 連携 & SVG埋め込み・サニタイズ
         ├── search.js      # Ctrl+K 全文検索モーダル
-        ├── backup.js      # データ保全・世代数設定・ロールバック制御
-        └── canvas/        # 構成図・作図キャンバスモジュール
-            ├── canvasEngine.js   # 描画・ズーム・パン・接続管理
-            ├── canvasModal.js    # 作図モーダル・プロパティインスペクター
-            └── shapes.js         # 機器・シェイプ・配線パス・SVGレンダリング
+        └── backup.js      # データ保全・世代数設定・ロールバック制御
 ```

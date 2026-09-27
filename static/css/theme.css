@@ -1,16 +1,16 @@
 /* ===================================================
    OpsNotes - VS Code Theme Stylesheet
    Supports:
-   - Monokai Pro (Filter Ristretto)
+   - Monokai
    - Catppuccin Mocha (Dark) & Latte (Light)
    - Ayu Dark, Ayu Mirage & Ayu Light
    - VS Code Dark+ & Light+
    =================================================== */
 
-/* 1. Monokai Pro Filter Ristretto (Default Dark) */
+/* 1. Monokai (Default Dark) */
 :root,
 [data-theme="monokai-ristretto"] {
-  --theme-name: "Monokai Pro Ristretto";
+  --theme-name: "Monokai";
   --bg-app: #201c1c;
   --bg-base: #2c2525;
   --bg-surface: #342e2e;
