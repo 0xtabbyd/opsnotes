@@ -1,8 +1,10 @@
 # OpsNotes v0.5
 
-**Command Knowledge & Snippet Management System with draw.io diagram creation & embedding**
+ByteStash と Trilium Notes を Docker で動かしていましたが、他の作業と並行するとメモリ不足になりやすく、もっと軽量にコマンドとメモを管理できるツールが欲しくて作りました。
+Docker Desktop も管理者権限もない、ロックダウンされた業務PCでも、uv があれば Python 実行環境ごと自動で揃って動きます。
+管理者権限が必要な操作はありません。
 
-ホストOS（Windows / macOS / Linux）上で動作する、コマンドナレッジ & スニペット管理、および draw.io 作図・挿入機能付き Markdown メモツール。ByteStash のスニペット管理と Trilium Notes の Markdown ノートを組み合わせ、構成図の作図やデータ保全のロールバックも備えています。
+単独利用・認証なしを前提にした設計のため、チームでの共有運用は想定していません。
 
 <p align="center">
   <img src="docs/images/terminal_banner.png" alt="OpsNotes Terminal Banner" width="850">
