@@ -83,6 +83,127 @@ function renderBlockquote(quote) {
   return `<blockquote>${this.parser.parse(tokens)}</blockquote>\n`;
 }
 
+/**
+ * Markdownエディタ用の手動Undo/Redo履歴。
+ *
+ * textarea への `.value = ...` の直接代入は、ブラウザがそのelementに持つ
+ * ネイティブのUndo履歴を丸ごと破棄する。このアプリはリスト自動継続・チェックボックス
+ * 操作・ツールバーの色付け・スニペット挿入など、あらゆる編集操作を `.value = ...` で
+ * 実装しているため、それらを一度でも使うとCtrl+Zが効かなくなっていた。
+ *
+ * 対策として、対象textareaの `value` プロパティをアクセサに差し替え、書き込みの
+ * 直前に自動でスナップショットを積む(instrument)。これにより将来 `.value = ` の
+ * 書き込み箇所が増えても、呼び出し側を個別に書き換える必要がない。
+ * 実際のキー入力（IME変換・単純打鍵）はプロパティ経由を通らないため、
+ * 入力停止から一定時間(バースト)後にまとめて1ステップとして積む。
+ */
+const editorHistory = {
+  undoStack: [],
+  redoStack: [],
+  lastCommitted: null,   // 直前に履歴へ確定した {value, start, end}
+  burstFrom: null,       // 進行中のタイピングバーストの開始時点の状態
+  burstTimer: null,
+  restoring: false,      // true の間は value 書き込みを履歴に積まない
+  instrumented: null,    // instrument 済みの textarea 要素（二重instrument防止）
+  maxEntries: 100,
+
+  instrument(el) {
+    if (this.instrumented === el) return;
+    this.instrumented = el;
+    const proto = Object.getPrototypeOf(el);
+    const nativeDescriptor = Object.getOwnPropertyDescriptor(proto, 'value')
+      || Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
+    const self = this;
+    Object.defineProperty(el, 'value', {
+      configurable: true,
+      get() {
+        return nativeDescriptor.get.call(el);
+      },
+      set(newVal) {
+        if (!self.restoring) {
+          const oldVal = nativeDescriptor.get.call(el);
+          if (oldVal !== newVal) {
+            self._commitBurstIfAny(el);
+            self._push({ value: oldVal, start: el.selectionStart, end: el.selectionEnd });
+          }
+        }
+        nativeDescriptor.set.call(el, newVal);
+        if (!self.restoring) {
+          self.lastCommitted = { value: newVal, start: el.selectionStart, end: el.selectionEnd };
+        }
+      },
+    });
+  },
+
+  // メモを切り替えて新しい内容を読み込む際に呼ぶ。前のメモの履歴は引き継がない。
+  loadNote(el, content) {
+    this.restoring = true;
+    el.value = content || '';
+    this.restoring = false;
+    this.undoStack = [];
+    this.redoStack = [];
+    this.burstFrom = null;
+    clearTimeout(this.burstTimer);
+    this.lastCommitted = { value: el.value, start: el.selectionStart, end: el.selectionEnd };
+  },
+
+  // ユーザーのキー入力(input イベント)ごとに呼ぶ。連続入力は1ステップにまとめる。
+  noteInput(el, delay = 500) {
+    if (this.restoring) return;
+    if (!this.burstFrom) this.burstFrom = this.lastCommitted;
+    clearTimeout(this.burstTimer);
+    this.burstTimer = setTimeout(() => this._commitBurstIfAny(el), delay);
+  },
+
+  _commitBurstIfAny(el) {
+    clearTimeout(this.burstTimer);
+    if (!this.burstFrom) return;
+    this._push(this.burstFrom);
+    this.burstFrom = null;
+    this.lastCommitted = { value: el.value, start: el.selectionStart, end: el.selectionEnd };
+  },
+
+  _push(state) {
+    const top = this.undoStack[this.undoStack.length - 1];
+    if (top && top.value === state.value) return;
+    this.undoStack.push(state);
+    if (this.undoStack.length > this.maxEntries) this.undoStack.shift();
+    this.redoStack = [];
+  },
+
+  canUndo() { return this.undoStack.length > 0 || !!this.burstFrom; },
+  canRedo() { return this.redoStack.length > 0; },
+
+  undo(el) {
+    this._commitBurstIfAny(el);
+    if (!this.undoStack.length) return false;
+    const current = { value: el.value, start: el.selectionStart, end: el.selectionEnd };
+    const prev = this.undoStack.pop();
+    this.redoStack.push(current);
+    this._apply(el, prev);
+    return true;
+  },
+
+  redo(el) {
+    if (!this.redoStack.length) return false;
+    const current = { value: el.value, start: el.selectionStart, end: el.selectionEnd };
+    const next = this.redoStack.pop();
+    this.undoStack.push(current);
+    this._apply(el, next);
+    return true;
+  },
+
+  _apply(el, state) {
+    this.restoring = true;
+    el.value = state.value;
+    el.selectionStart = state.start;
+    el.selectionEnd = state.end;
+    this.restoring = false;
+    this.lastCommitted = state;
+    el.focus();
+  },
+};
+
 export const notesManager = {
   notes: [],
   activeNoteId: null,
@@ -162,12 +283,13 @@ export const notesManager = {
     if (titleInput) titleInput.value = '';
     if (catInput) catInput.value = '';
     if (tagsInput) tagsInput.value = '';
-    if (mdInput) mdInput.value = '';
+    if (mdInput) editorHistory.loadNote(mdInput, '');
     if (previewWrap) previewWrap.innerHTML = '';
     if (relatedList) {
       relatedList.innerHTML = '<div class="related-empty-hint">メモを選択すると関連するノートが自動で繋がります</div>';
     }
     this.updateSaveStatus('saved');
+    this.updateUndoRedoButtons();
   },
 
   renderNotesList() {
@@ -235,7 +357,8 @@ export const notesManager = {
       if (titleInput) titleInput.value = this.activeNote.title || '';
       if (catInput) catInput.value = this.activeNote.category || 'General';
       if (tagsInput) tagsInput.value = Array.isArray(this.activeNote.tags) ? this.activeNote.tags.join(', ') : (this.activeNote.tags || '');
-      if (mdInput) mdInput.value = this.activeNote.content || '';
+      if (mdInput) editorHistory.loadNote(mdInput, this.activeNote.content);
+      this.updateUndoRedoButtons();
 
       if (btnFav) {
         btnFav.innerHTML = this.activeNote.favorite ? '<i class="fa-solid fa-star" style="color:#eab308;"></i>' : '<i class="fa-regular fa-star"></i>';
@@ -646,6 +769,30 @@ export const notesManager = {
     const textarea = document.getElementById('noteMarkdownInput');
     if (!toolbar || !textarea) return;
 
+    // Undo / Redo
+    const btnUndo = document.getElementById('btnNoteUndo');
+    const btnRedo = document.getElementById('btnNoteRedo');
+    if (btnUndo) {
+      btnUndo.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (editorHistory.undo(textarea)) {
+          this.updatePreview();
+          this.triggerAutoSave();
+          this.updateUndoRedoButtons();
+        }
+      });
+    }
+    if (btnRedo) {
+      btnRedo.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (editorHistory.redo(textarea)) {
+          this.updatePreview();
+          this.triggerAutoSave();
+          this.updateUndoRedoButtons();
+        }
+      });
+    }
+
     // 通常のツールバーボタン
     toolbar.querySelectorAll('.tb-btn[data-action]').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -712,18 +859,44 @@ export const notesManager = {
       this.closeAllColorPopovers();
     });
 
-    // キーボードショートカット (Ctrl+B, Ctrl+I)
+    // キーボードショートカット (Ctrl+B, Ctrl+I, Ctrl+Z, Ctrl+Y/Ctrl+Shift+Z)
     textarea.addEventListener('keydown', (e) => {
       if (e.ctrlKey || e.metaKey) {
-        if (e.key.toLowerCase() === 'b') {
+        const key = e.key.toLowerCase();
+        if (key === 'b') {
           e.preventDefault();
           this.executeToolbarAction('bold');
-        } else if (e.key.toLowerCase() === 'i') {
+        } else if (key === 'i') {
           e.preventDefault();
           this.executeToolbarAction('italic');
+        } else if (key === 'z' && !e.shiftKey) {
+          // ブラウザのネイティブUndoはこのアプリの .value 書き換えで壊れているため
+          // 独自履歴(editorHistory)で処理し、ネイティブUndoは常に無効化する
+          e.preventDefault();
+          if (editorHistory.undo(textarea)) {
+            this.updatePreview();
+            this.triggerAutoSave();
+            this.updateUndoRedoButtons();
+          }
+        } else if ((key === 'z' && e.shiftKey) || key === 'y') {
+          e.preventDefault();
+          if (editorHistory.redo(textarea)) {
+            this.updatePreview();
+            this.triggerAutoSave();
+            this.updateUndoRedoButtons();
+          }
         }
       }
     });
+
+    this.updateUndoRedoButtons();
+  },
+
+  updateUndoRedoButtons() {
+    const btnUndo = document.getElementById('btnNoteUndo');
+    const btnRedo = document.getElementById('btnNoteRedo');
+    if (btnUndo) btnUndo.disabled = !editorHistory.canUndo();
+    if (btnRedo) btnRedo.disabled = !editorHistory.canRedo();
   },
 
   closeAllColorPopovers() {
@@ -1562,6 +1735,8 @@ ${currentContent}
     const btnPin = document.getElementById('btnNotePin');
     const btnPostmortem = document.getElementById('btnConvertToPostmortem');
 
+    if (mdInput) editorHistory.instrument(mdInput);
+
     if (btnFav) {
       btnFav.addEventListener('click', async (e) => {
         e.preventDefault();
@@ -1614,6 +1789,8 @@ ${currentContent}
 
     if (mdInput) {
       mdInput.addEventListener('input', () => {
+        editorHistory.noteInput(mdInput);
+        this.updateUndoRedoButtons();
         this.updatePreview();
         this.triggerAutoSave();
       });
